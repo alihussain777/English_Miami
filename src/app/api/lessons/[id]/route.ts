@@ -109,7 +109,7 @@ export async function GET(
           ? {
               status: userProgress.status,
               score: userProgress.score,
-              attempts: userProgress.attempts,
+              attempts: (userProgress as any).attempts || 1,
               completedAt: userProgress.completedAt,
             }
           : null,

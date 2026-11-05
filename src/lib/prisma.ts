@@ -45,7 +45,6 @@ function resolveDatabaseUrl(): string {
 }
 
 const dbUrl = resolveDatabaseUrl();
-process.env.DATABASE_URL = dbUrl;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
