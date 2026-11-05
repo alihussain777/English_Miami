@@ -1,14 +1,12 @@
 /** @type {import('next').NextConfig} */
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'file:./dev.db';
-}
-if (!process.env.AUTH_SECRET) {
-  process.env.AUTH_SECRET = 'english-miami-ultra-secure-jwt-secret-key-production-32chars';
-}
-
 const nextConfig = {
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./prisma/dev.db', './prisma/schema.prisma'],
+      '/*': ['./prisma/dev.db', './prisma/schema.prisma'],
+    },
+  },
   env: {
-    DATABASE_URL: process.env.DATABASE_URL || 'file:./dev.db',
     AUTH_SECRET: process.env.AUTH_SECRET || 'english-miami-ultra-secure-jwt-secret-key-production-32chars',
   },
 };

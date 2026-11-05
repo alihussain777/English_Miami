@@ -68,8 +68,11 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ levels: levelsWithProgress });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching courses:', error);
-    return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to fetch courses',
+      details: error?.message || String(error)
+    }, { status: 500 });
   }
 }
