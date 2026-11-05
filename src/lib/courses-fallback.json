@@ -1,0 +1,835 @@
+[
+  {
+    "code": "A0",
+    "title": "Absolute Beginner",
+    "description": "Alphabet, phonics, numbers, essential greetings, and foundational survival vocabulary.",
+    "courses": [
+      {
+        "id": "45c2c6c5-fdcd-4189-97ce-6b00a54bd92e",
+        "title": "A0 Foundation: English from Zero",
+        "slug": "a0-foundation",
+        "description": "Master the English alphabet, letter combinations, numbers, days of the week, colors, and survival greetings.",
+        "icon": "sparkles",
+        "levelCode": "A0",
+        "totalLessons": 6,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "3ca4e76b-3554-4a08-8b27-06fe716a1bc9",
+            "title": "The English Alphabet & Sounds",
+            "slug": "alphabet-and-sounds",
+            "description": "Learn the 26 letters of the English alphabet, vowels, and phonics.",
+            "durationMinutes": 10,
+            "xpReward": 50,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "670a6601-639c-409e-ab75-5c62fdfb8f2c",
+            "title": "The English Alphabet, Vowels & Phonics",
+            "slug": "a0-alphabet-and-sounds",
+            "description": "Learn the 26 letters of the English alphabet, vowels, and phonics.",
+            "durationMinutes": 10,
+            "xpReward": 50,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "2da5ca0f-c115-478b-958a-3cf6e6b48ef9",
+            "title": "Basic Greetings & Hello",
+            "slug": "basic-greetings",
+            "description": "Essential greetings: Hello, Good morning, How are you?, and Goodbye.",
+            "durationMinutes": 12,
+            "xpReward": 50,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "fd1c5f6e-d52f-4d81-b5bd-4791a6356e4b",
+            "title": "Essential Survival Greetings & Goodbyes",
+            "slug": "a0-survival-greetings",
+            "description": "Polite greetings: Hello, Good morning, How are you?, and Goodbye.",
+            "durationMinutes": 12,
+            "xpReward": 50,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "ea195ccf-e5ca-4958-b247-f77b18f33b53",
+            "title": "Numbers 1-100, Days of the Week & Telling Time",
+            "slug": "a0-numbers-days-time",
+            "description": "Count from 1 to 100, learn Monday to Sunday, and tell the time accurately.",
+            "durationMinutes": 15,
+            "xpReward": 55,
+            "order": 3,
+            "isCompleted": false
+          },
+          {
+            "id": "1d470b8a-b378-4ea0-8d47-6177e51e59d3",
+            "title": "Colors, Shapes & Everyday Common Objects",
+            "slug": "a0-colors-shapes-objects",
+            "description": "Identify red, blue, green, yellow, shapes, and objects like pen, table, chair, phone.",
+            "durationMinutes": 12,
+            "xpReward": 50,
+            "order": 4,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "754cee13-3152-4f37-83e7-40bfdf268237",
+        "title": "Unit 1: Letters, Sounds & First Words",
+        "slug": "unit-1-alphabet-and-sounds",
+        "description": "Learn the 26 letters of the English alphabet, master vowels, and pronounce your first survival words.",
+        "icon": null,
+        "levelCode": "A0",
+        "totalLessons": 3,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "dd10624d-6a07-4cdd-94ba-358fc53a0477",
+            "title": "Alphabet & Phonics Essentials",
+            "slug": "u1-l1-alphabet-phonics",
+            "description": "Vowels vs consonants, letter sounds, and spelling fundamentals.",
+            "durationMinutes": 6,
+            "xpReward": 15,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "9a2d29c0-22ee-4f49-bdf4-0c07e82df3c3",
+            "title": "Spelling Your Name & Everyday Words",
+            "slug": "u1-l2-spelling-names",
+            "description": "Spell names, identify uppercase vs lowercase, and pronounce basic blends.",
+            "durationMinutes": 6,
+            "xpReward": 15,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "a43ea4d3-116a-46b8-af80-f391f075b6c1",
+            "title": "Colors & Basic Descriptors",
+            "slug": "u1-l3-colors-descriptors",
+            "description": "Red, blue, green, yellow, black, white, big, small.",
+            "durationMinutes": 7,
+            "xpReward": 15,
+            "order": 3,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "6e249aed-b148-4b30-a413-14bff1d8e7ab",
+        "title": "Unit 2: Essential Greetings & Saying Goodbye",
+        "slug": "unit-2-greetings-goodbyes",
+        "description": "Learn Hello, Good morning, How are you?, Nice to meet you, and polite farewells.",
+        "icon": null,
+        "levelCode": "A0",
+        "totalLessons": 3,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "e776b1f0-a01d-4092-a9e6-3499253ce298",
+            "title": "Saying Hello & Good Morning",
+            "slug": "u2-l1-saying-hello",
+            "description": "Morning, afternoon, evening greetings and casual versus polite hellos.",
+            "durationMinutes": 6,
+            "xpReward": 15,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "65ea9df9-f688-4c66-8b6a-03dd8fa30204",
+            "title": "Nice to Meet You & Introductions",
+            "slug": "u2-l2-nice-to-meet-you",
+            "description": "Introduce yourself and introduce a friend.",
+            "durationMinutes": 7,
+            "xpReward": 15,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "2642872d-93e3-4e4b-a56d-46674f00809f",
+            "title": "Polite Goodbyes & See You Soon",
+            "slug": "u2-l3-saying-goodbye",
+            "description": "Bye, goodbye, see you tomorrow, have a nice day.",
+            "durationMinutes": 6,
+            "xpReward": 15,
+            "order": 3,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "A1",
+    "title": "Beginner",
+    "description": "Everyday routines, introductions, family, food, shopping, and present simple tense.",
+    "courses": [
+      {
+        "id": "c5fa17fb-8b31-49b0-95de-e9b0e0d6bcfe",
+        "title": "A1 Beginner: Daily Life & Foundations",
+        "slug": "a1-daily-life",
+        "description": "Introduce yourself, talk about your family, food, shopping, and master the present simple tense.",
+        "icon": "coffee",
+        "levelCode": "A1",
+        "totalLessons": 6,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "7fae328b-741f-4ebb-9965-c7d1d2afb370",
+            "title": "Introducing Yourself & Your Family",
+            "slug": "introducing-yourself",
+            "description": "Share your name, nationality, age, and describe your family members.",
+            "durationMinutes": 15,
+            "xpReward": 60,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "ff42dd4f-6c6b-423b-a796-9b0555fc61e3",
+            "title": "Introducing Yourself & Your Family",
+            "slug": "a1-introducing-yourself",
+            "description": "Share your name, nationality, age, and describe your family members.",
+            "durationMinutes": 15,
+            "xpReward": 60,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "e9c4ca02-93bf-4019-a2cc-761bda4c3fb3",
+            "title": "Present Simple: Daily Routines",
+            "slug": "present-simple-routines",
+            "description": "Express habits, daily routines, and master the third-person -s rule.",
+            "durationMinutes": 18,
+            "xpReward": 60,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "47b7452e-8047-40a1-9a25-6b2f35981409",
+            "title": "Present Simple: Daily Routines & Habits",
+            "slug": "a1-present-simple-routines",
+            "description": "Express habits, daily routines, and master the third-person -s rule.",
+            "durationMinutes": 18,
+            "xpReward": 60,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "7c3d866f-8e65-444a-98bb-9030049a739d",
+            "title": "Ordering Food & Drinks at a Café",
+            "slug": "a1-ordering-food-cafe",
+            "description": "Polite phrases: \"Could I have...\", \"I would like...\", asking for the bill.",
+            "durationMinutes": 16,
+            "xpReward": 65,
+            "order": 3,
+            "isCompleted": false
+          },
+          {
+            "id": "97a0be75-1cdb-457b-a78f-071b8bd628e2",
+            "title": "Shopping, Asking Prices & Store Dialogues",
+            "slug": "a1-shopping-dialogues",
+            "description": "Ask \"How much is this?\", request different sizes/colors, and complete purchases.",
+            "durationMinutes": 15,
+            "xpReward": 60,
+            "order": 4,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "7bebc0ab-1505-42dc-8689-8e8d73737c9b",
+        "title": "Unit 3: Food, Cafe & Ordering Drinks",
+        "slug": "unit-3-food-cafe-ordering",
+        "description": "Order coffee, tea, water, food, ask for the bill, and use polite requests with \"please\" and \"can I have\".",
+        "icon": null,
+        "levelCode": "A1",
+        "totalLessons": 2,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "b9670630-2c44-450c-a5c7-e54fbaf39bb5",
+            "title": "At the Cafe: Coffee, Tea & Water",
+            "slug": "u3-l1-cafe-drinks",
+            "description": "Order hot and cold drinks politely.",
+            "durationMinutes": 7,
+            "xpReward": 20,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "5fd253a8-9c9d-43a1-a6f7-ea5498d1354d",
+            "title": "Ordering Food & Asking for the Bill",
+            "slug": "u3-l2-ordering-food-bill",
+            "description": "Order breakfast, lunch, and ask \"How much is it?\" or \"Check, please\".",
+            "durationMinutes": 7,
+            "xpReward": 20,
+            "order": 2,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "3c5cf586-7766-4543-bc19-f4672a7fe4ef",
+        "title": "Unit 4: Daily Routines & Present Simple",
+        "slug": "unit-4-daily-routines-present-simple",
+        "description": "Talk about morning habits, work schedules, free time, and use the Present Simple tense with I, you, he, she.",
+        "icon": null,
+        "levelCode": "A1",
+        "totalLessons": 1,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "cffd9719-f772-4a9b-8204-0bcff6643b63",
+            "title": "My Morning Routine: Wake Up & Eat Breakfast",
+            "slug": "u4-l1-morning-routine",
+            "description": "Wake up, brush teeth, shower, have breakfast, leave for work.",
+            "durationMinutes": 8,
+            "xpReward": 20,
+            "order": 1,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "A2",
+    "title": "Elementary",
+    "description": "Travel, past experiences, future plans, shopping, health, comparatives, and directions.",
+    "courses": [
+      {
+        "id": "6b44d21e-88ce-482d-a6f0-ba5213d34eb7",
+        "title": "A2 Elementary: Travel, Past & Future",
+        "slug": "a2-elementary-travel",
+        "description": "Navigate airports, hotels, restaurants, talk about past vacations, and express future plans.",
+        "icon": "plane",
+        "levelCode": "A2",
+        "totalLessons": 6,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "b10c7206-28b8-40c1-bc77-458b233d8250",
+            "title": "Past Simple: Memories & Vacations",
+            "slug": "past-simple-memories",
+            "description": "Regular and irregular past tense verbs to describe past trips and events.",
+            "durationMinutes": 20,
+            "xpReward": 70,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "5aca69e5-e96d-40fc-bfef-89b326d7a3f4",
+            "title": "Past Simple: Memories & Vacations",
+            "slug": "a2-past-simple-memories",
+            "description": "Regular and irregular past tense verbs to describe past trips and events.",
+            "durationMinutes": 20,
+            "xpReward": 70,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "d6509c4e-1ed1-43c9-af34-da28b454d200",
+            "title": "Future Plans: Going To vs. Will",
+            "slug": "a2-future-plans-going-to-will",
+            "description": "Distinguish between planned intentions (be going to) and spontaneous decisions (will).",
+            "durationMinutes": 18,
+            "xpReward": 70,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "b25b9c87-53a2-4b0e-af41-a268680dea3e",
+            "title": "Airport, Hotel & Transit Navigation",
+            "slug": "a2-airport-hotel-transit",
+            "description": "Check-in counters, boarding gates, passport control, and hotel amenity requests.",
+            "durationMinutes": 20,
+            "xpReward": 75,
+            "order": 3,
+            "isCompleted": false
+          },
+          {
+            "id": "f6157dfb-8d57-4ba8-8e11-926112224248",
+            "title": "Health, Doctor Visits & Expressing Symptoms",
+            "slug": "a2-health-doctor-symptoms",
+            "description": "Describe physical symptoms: headache, stomachache, fever, and follow medical instructions.",
+            "durationMinutes": 16,
+            "xpReward": 70,
+            "order": 4,
+            "isCompleted": false
+          },
+          {
+            "id": "fb155c8b-ddc1-40f4-a09b-89e3f770d61b",
+            "title": "Comparative & Superlative Adjectives",
+            "slug": "a2-comparatives-superlatives",
+            "description": "Compare two or more things: bigger, faster, more expensive, the most important.",
+            "durationMinutes": 18,
+            "xpReward": 70,
+            "order": 5,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "546ecc75-7453-4f59-aee3-2adbfae518e4",
+        "title": "Unit 5: Airport, Flights & Hotel Check-in",
+        "slug": "unit-5-travel-airport-hotels",
+        "description": "Navigate passport control, boarding gates, flight luggage, and checking into your hotel room.",
+        "icon": null,
+        "levelCode": "A2",
+        "totalLessons": 2,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "a9ee077e-d1b9-4f85-b7af-56befad2dcce",
+            "title": "Airport Security & Boarding Pass",
+            "slug": "u5-l1-airport-boarding",
+            "description": "Gate, terminal, boarding pass, carry-on luggage, passport control.",
+            "durationMinutes": 8,
+            "xpReward": 25,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "6d91a864-f040-41b0-ad7b-fb6c888932f9",
+            "title": "Checking In at the Hotel",
+            "slug": "u5-l2-hotel-checkin",
+            "description": "Room keys, Wi-Fi password, breakfast hours, and checking out.",
+            "durationMinutes": 8,
+            "xpReward": 25,
+            "order": 2,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "007defe1-cd41-45de-ab61-04c0683bb75a",
+        "title": "Unit 6: Past Memories & Yesterday (Past Simple)",
+        "slug": "unit-6-past-simple-memories",
+        "description": "Talk about what you did yesterday, last weekend, and holidays using regular and irregular past verbs.",
+        "icon": null,
+        "levelCode": "A2",
+        "totalLessons": 1,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "6335fe23-aee1-4576-909c-32bc0a81d8b9",
+            "title": "What Did You Do Yesterday? (Regular -ed)",
+            "slug": "u6-l1-past-regular-verbs",
+            "description": "Worked, walked, cooked, played, watched, talked.",
+            "durationMinutes": 8,
+            "xpReward": 25,
+            "order": 1,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "B1",
+    "title": "Intermediate",
+    "description": "Workplace fluency, interviews, opinions, storytelling, conditionals, and reported speech.",
+    "courses": [
+      {
+        "id": "a1e5af8e-a461-48e3-8cfa-292a261cea12",
+        "title": "B1 Intermediate: Fluency & Workplace",
+        "slug": "b1-intermediate-workplace",
+        "description": "Express nuanced opinions, handle workplace conversations, master conditionals and reported speech.",
+        "icon": "briefcase",
+        "levelCode": "B1",
+        "totalLessons": 6,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "3a3a1946-4de8-424b-8b13-3d88c6520fa5",
+            "title": "First & Second Conditionals: Real vs Hypotheses",
+            "slug": "conditionals-real-hypothetical",
+            "description": "Distinguish between realistic future possibilities (If it rains...) and hypothetical dreams (If I had a million dollars...).",
+            "durationMinutes": 22,
+            "xpReward": 80,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "ecb6e8f1-e7ea-4b59-af66-12d74df68973",
+            "title": "First & Second Conditionals: Real vs Hypotheses",
+            "slug": "b1-conditionals-real-hypothetical",
+            "description": "Distinguish between realistic future possibilities (If it rains...) and hypothetical dreams (If I had a million dollars...).",
+            "durationMinutes": 22,
+            "xpReward": 80,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "2ae603e5-93d1-4fe9-8eba-0bc9fde0ef02",
+            "title": "Job Interview Foundations & Career Questions",
+            "slug": "b1-job-interview-foundations",
+            "description": "Answer \"Tell me about yourself\", describe strengths/weaknesses, and use the STAR method.",
+            "durationMinutes": 25,
+            "xpReward": 85,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "f5714e89-a449-4db2-9c2f-88671a4916a1",
+            "title": "Professional Business Emails & Etiquette",
+            "slug": "b1-business-emails-etiquette",
+            "description": "Write inquiries, follow-ups, meeting requests, and maintain appropriate professional register.",
+            "durationMinutes": 20,
+            "xpReward": 80,
+            "order": 3,
+            "isCompleted": false
+          },
+          {
+            "id": "03e18e00-9e5e-4c55-aad1-d2f67898a7af",
+            "title": "Storytelling: Past Continuous vs. Past Simple",
+            "slug": "b1-storytelling-past-continuous",
+            "description": "Set background scenes (was walking) interrupted by sudden actions (saw an accident).",
+            "durationMinutes": 20,
+            "xpReward": 75,
+            "order": 4,
+            "isCompleted": false
+          },
+          {
+            "id": "c5412310-6fe6-4654-824f-8d9588ec98a1",
+            "title": "Modal Verbs of Deduction & Possibility (Must, Might, Can't)",
+            "slug": "b1-modals-of-deduction",
+            "description": "Express certainty (must be), probability (might be), and impossibility (can't be).",
+            "durationMinutes": 18,
+            "xpReward": 80,
+            "order": 5,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "d39de411-18ff-48cb-b699-2d3533451860",
+        "title": "Unit 7: Workplace English & Professional Fluency",
+        "slug": "unit-7-workplace-professional",
+        "description": "Express opinions in meetings, write clear work emails, and communicate effectively with colleagues.",
+        "icon": null,
+        "levelCode": "B1",
+        "totalLessons": 2,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "93b4ce2d-4e89-4bc2-bb0f-ff59f9eb0588",
+            "title": "Writing Clear Professional Emails",
+            "slug": "u7-l1-professional-emails",
+            "description": "Subject lines, formal openings, requesting updates, and polite sign-offs.",
+            "durationMinutes": 9,
+            "xpReward": 30,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "fdd29088-4f46-4582-b452-df003c3cf405",
+            "title": "Meetings & Expressing Opinions Diplomatically",
+            "slug": "u7-l2-meetings-opinions",
+            "description": "Agreeing, politely disagreeing, interrupting tactfully, and summarizing.",
+            "durationMinutes": 9,
+            "xpReward": 30,
+            "order": 2,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "B2",
+    "title": "Upper Intermediate",
+    "description": "Business negotiations, presentations, idioms, phrasal verbs, and passive voice.",
+    "courses": [
+      {
+        "id": "c38d3195-659b-4852-9c81-7c8a7500469e",
+        "title": "B2 Upper Intermediate: Professional Mastery",
+        "slug": "b2-professional-mastery",
+        "description": "Conduct negotiations, deliver persuasive presentations, and master idiomatic natural speech.",
+        "icon": "award",
+        "levelCode": "B2",
+        "totalLessons": 1,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "4c3f9089-0af0-42a2-bc2d-9b5640ac420a",
+            "title": "Professional Presentation & Persuasion",
+            "slug": "professional-presentation",
+            "description": "Techniques for captivating international audiences, handling tough questions, and signposting.",
+            "durationMinutes": 25,
+            "xpReward": 90,
+            "order": 1,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "68ef6597-89f0-484c-9bb9-036c51ba6947",
+        "title": "B2 Upper Intermediate: Professional & Academic Fluency",
+        "slug": "b2-upper-intermediate",
+        "description": "Business negotiations, presentations, idioms, phrasal verbs, and passive voice in corporate reports.",
+        "icon": null,
+        "levelCode": "B2",
+        "totalLessons": 5,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "08f5e192-01d9-447b-a883-63244b8d99a0",
+            "title": "Presentation Signposting & Professional Pitching",
+            "slug": "b2-presentation-signposting",
+            "description": "Lead conferences and board meetings with signpost phrases: \"Moving on to...\", \"To summarize...\".",
+            "durationMinutes": 25,
+            "xpReward": 90,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "bea9b5e9-9f3f-4349-b425-6d5c92c7f4e5",
+            "title": "High-Stakes Business Negotiations",
+            "slug": "b2-business-negotiations",
+            "description": "Tactfully reject proposals, counter-offer, establish trade-offs, and seal commercial deals.",
+            "durationMinutes": 24,
+            "xpReward": 90,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "6bf59db4-899d-4e60-aa3e-850582450d4b",
+            "title": "Idiomatic Expressions & Natural Phrasal Verbs",
+            "slug": "b2-idioms-phrasal-verbs",
+            "description": "Master idioms like \"cut corners\", \"hit the nail on the head\", and \"think outside the box\".",
+            "durationMinutes": 22,
+            "xpReward": 85,
+            "order": 3,
+            "isCompleted": false
+          },
+          {
+            "id": "cfd7b08f-298a-467d-9f73-efc26290db73",
+            "title": "Passive Voice in Corporate Reports & Journalism",
+            "slug": "b2-passive-voice-reports",
+            "description": "Focus on facts and events rather than the actor: \"Mistakes were made\", \"The merger was approved\".",
+            "durationMinutes": 20,
+            "xpReward": 85,
+            "order": 4,
+            "isCompleted": false
+          },
+          {
+            "id": "969b03f0-ff34-4f52-91ce-afe935f1bd6d",
+            "title": "Third Conditional & Mixed Conditionals (Expressing Regret)",
+            "slug": "b2-third-and-mixed-conditionals",
+            "description": "Discuss past events that cannot be changed: \"If we had invested earlier, we would be market leaders today.\"",
+            "durationMinutes": 24,
+            "xpReward": 90,
+            "order": 5,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "6e48fe22-6a32-4d5a-beae-e0e21610cc1a",
+        "title": "Unit 8: Business Negotiations & High-Stakes Pitching",
+        "slug": "unit-8-business-negotiations",
+        "description": "Master contract negotiations, concessions, persuasion, and formal presentations.",
+        "icon": null,
+        "levelCode": "B2",
+        "totalLessons": 1,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "c59afe81-d043-49cf-8a74-f0b9113ed0b3",
+            "title": "Pitching Proposals & Value Propositions",
+            "slug": "u8-l1-pitching-proposals",
+            "description": "Hooking investors, articulating ROI, and demonstrating competitive advantage.",
+            "durationMinutes": 10,
+            "xpReward": 35,
+            "order": 1,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "C1",
+    "title": "Advanced",
+    "description": "Negative inversion, diplomatic tact, hedging, rhetoric, and academic discourse.",
+    "courses": [
+      {
+        "id": "6669f7c5-90eb-4d86-8c16-372ce726e179",
+        "title": "C1 Advanced: Nuance & Academic Precision",
+        "slug": "c1-advanced-nuance",
+        "description": "Master advanced rhetorical devices, sophisticated vocabulary, and effortless conversational diplomacy.",
+        "icon": "feather",
+        "levelCode": "C1",
+        "totalLessons": 1,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "af5dccfe-7fe6-4dca-b478-3e76355f7504",
+            "title": "Subtle Inversion & Rhetorical Emphasis",
+            "slug": "inversion-and-emphasis",
+            "description": "Use negative inversions (Rarely have I seen..., Not only did she...) for dramatic and formal emphasis.",
+            "durationMinutes": 28,
+            "xpReward": 100,
+            "order": 1,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "1c848aba-5438-47f7-8c77-76e9eded5363",
+        "title": "C1 Advanced: Nuance, Rhetoric & Precision",
+        "slug": "c1-advanced-rhetoric",
+        "description": "Master negative inversion, diplomatic nuance, hedging, academic discourse, and effortless eloquence.",
+        "icon": null,
+        "levelCode": "C1",
+        "totalLessons": 4,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "453c4241-8fc2-47a2-bbe8-ede063e1f798",
+            "title": "Negative Inversion for Rhetorical Impact",
+            "slug": "c1-negative-inversion-rhetoric",
+            "description": "Craft commanding sentences: \"Seldom have I witnessed...\", \"Rarely does an innovation...\", \"Under no circumstances should you...\".",
+            "durationMinutes": 26,
+            "xpReward": 100,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "29786dbc-329e-40ee-b200-ae390e43055a",
+            "title": "Diplomatic Nuance, Hedging & Subtle Tactfulness",
+            "slug": "c1-diplomatic-hedging-tact",
+            "description": "Soften absolute statements using modal hedges, epistemic verbs (tend to, seem to), and tactful euphemisms.",
+            "durationMinutes": 24,
+            "xpReward": 95,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "a13d0140-c4f6-4077-b2a9-2e7d71430999",
+            "title": "Advanced Academic Essays & Cohesive Discourse Markers",
+            "slug": "c1-academic-discourse-markers",
+            "description": "Deploy markers like \"Notwithstanding\", \"Albeit\", \"Inasmuch as\", and \"Furthermore\" for rigorous synthesis.",
+            "durationMinutes": 25,
+            "xpReward": 100,
+            "order": 3,
+            "isCompleted": false
+          },
+          {
+            "id": "b6e48ab5-7186-416d-9120-e60efee30b82",
+            "title": "Colloquial Nuance, Sarcasm & British vs. American Idioms",
+            "slug": "c1-colloquial-nuance-sarcasm",
+            "description": "Navigate dry humor, understated irony (\"not bad at all\"), and distinct UK/US linguistic divergences.",
+            "durationMinutes": 22,
+            "xpReward": 95,
+            "order": 4,
+            "isCompleted": false
+          }
+        ]
+      },
+      {
+        "id": "0f660a70-6374-4787-a636-16f0df35002b",
+        "title": "Unit 9: Advanced Idiomatic English & Rhetorical Mastery",
+        "slug": "unit-9-advanced-idioms-rhetoric",
+        "description": "Learn native metaphors, negative inversion, litotes, and executive diplomatic nuance.",
+        "icon": null,
+        "levelCode": "C1",
+        "totalLessons": 1,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "8202f40b-8913-49ea-8e63-80a31dfa5734",
+            "title": "Negative Inversion for Rhetorical Impact",
+            "slug": "u9-l1-negative-inversion",
+            "description": "Hardly had, Seldom do, Not only... but also, Under no circumstances.",
+            "durationMinutes": 10,
+            "xpReward": 40,
+            "order": 1,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "C2",
+    "title": "Proficiency",
+    "description": "Near-native mastery, litotes, subtle irony, complex contractual registers, and literary stylistics.",
+    "courses": [
+      {
+        "id": "e49a9972-03d7-4bdc-be92-9c8cbbbf5089",
+        "title": "C2 Proficiency: Mastery, Literature & Native Precision",
+        "slug": "c2-proficiency-mastery",
+        "description": "Near-native mastery, litotes, subtle irony, complex contractual registers, and literary stylistics.",
+        "icon": "crown",
+        "levelCode": "C2",
+        "totalLessons": 4,
+        "completedCount": 0,
+        "isCompleted": false,
+        "lessons": [
+          {
+            "id": "cf168c19-b52a-43f0-8338-42ec3a7ba3d6",
+            "title": "Idiomatic Mastery & Cultural Subtext",
+            "slug": "idiomatic-mastery-subtext",
+            "description": "Decode idiomatic nuance, understated British & American irony, and stylistic mastery.",
+            "durationMinutes": 30,
+            "xpReward": 120,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "df3fcda5-a182-4916-bf3a-041c3d97714e",
+            "title": "Literary Devices: Litotes, Irony, Hyperbole & Metaphor",
+            "slug": "c2-literary-devices-litotes-irony",
+            "description": "Appreciate and generate high-level rhetorical figures: litotes (double negatives for affirmative), chiasmus, and extended allegories.",
+            "durationMinutes": 30,
+            "xpReward": 120,
+            "order": 1,
+            "isCompleted": false
+          },
+          {
+            "id": "11f6f0a8-32df-4827-aedf-9dc4bd0c47f2",
+            "title": "Legal, Financial & Complex Contractual Syntax",
+            "slug": "c2-legal-contractual-syntax",
+            "description": "Navigate archaic prepositions (herein, indemnification, whereas, pursuant to) and multi-clause legal sentences.",
+            "durationMinutes": 28,
+            "xpReward": 110,
+            "order": 2,
+            "isCompleted": false
+          },
+          {
+            "id": "4e6cca25-35ac-46b8-928e-8b400e4e3d6d",
+            "title": "Near-Native Idiomatic Dexterity & Archaic Expressions",
+            "slug": "c2-near-native-idiomatic-dexterity",
+            "description": "Effortlessly wield idioms like \"bite the bullet\", \"steer clear\", \"gild the lily\", and \"through the grapevine\".",
+            "durationMinutes": 25,
+            "xpReward": 110,
+            "order": 3,
+            "isCompleted": false
+          }
+        ]
+      }
+    ]
+  }
+]

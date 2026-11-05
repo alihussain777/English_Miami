@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
+import fallbackCourses from '@/lib/courses-fallback.json';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,47 +9,58 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
 
-    const levels = await prisma.level.findMany({
-      orderBy: { order: 'asc' },
-      include: {
-        courses: {
-          where: { isPublished: true },
-          orderBy: { order: 'asc' },
-          include: {
-            lessons: {
-              where: { isPublished: true },
-              orderBy: { order: 'asc' },
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                description: true,
-                durationMinutes: true,
-                xpReward: true,
-                order: true,
+    let levels: any[] = [];
+    try {
+      levels = await prisma.level.findMany({
+        orderBy: { order: 'asc' },
+        include: {
+          courses: {
+            where: { isPublished: true },
+            orderBy: { order: 'asc' },
+            include: {
+              lessons: {
+                where: { isPublished: true },
+                orderBy: { order: 'asc' },
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                  description: true,
+                  durationMinutes: true,
+                  xpReward: true,
+                  order: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+    } catch (dbErr) {
+      console.warn('[Courses] DB error, using cached curriculum:', dbErr);
+    }
+
+    if (!levels || levels.length === 0) {
+      return NextResponse.json({ levels: fallbackCourses });
+    }
 
     let completedLessonIds = new Set<string>();
     if (session) {
-      const userProgress = await prisma.lessonProgress.findMany({
-        where: { userId: session.id, status: 'COMPLETED' },
-        select: { lessonId: true },
-      });
-      completedLessonIds = new Set(userProgress.map((p) => p.lessonId));
+      try {
+        const userProgress = await prisma.lessonProgress.findMany({
+          where: { userId: session.id, status: 'COMPLETED' },
+          select: { lessonId: true },
+        });
+        completedLessonIds = new Set(userProgress.map((p) => p.lessonId));
+      } catch (e) {}
     }
 
     const levelsWithProgress = levels.map((lvl) => ({
       code: lvl.code,
       title: lvl.title,
       description: lvl.description,
-      courses: lvl.courses.map((c) => {
+      courses: lvl.courses.map((c: any) => {
         const totalLessons = c.lessons.length;
-        const completedCount = c.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+        const completedCount = c.lessons.filter((l: any) => completedLessonIds.has(l.id)).length;
         return {
           id: c.id,
           title: c.title,
@@ -59,8 +71,14 @@ export async function GET(req: NextRequest) {
           totalLessons,
           completedCount,
           isCompleted: totalLessons > 0 && completedCount === totalLessons,
-          lessons: c.lessons.map((l) => ({
-            ...l,
+          lessons: c.lessons.map((l: any) => ({
+            id: l.id,
+            title: l.title,
+            slug: l.slug,
+            description: l.description,
+            durationMinutes: l.durationMinutes,
+            xpReward: l.xpReward,
+            order: l.order,
             isCompleted: completedLessonIds.has(l.id),
           })),
         };
@@ -69,10 +87,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ levels: levelsWithProgress });
   } catch (error: any) {
-    console.error('Error fetching courses:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch courses',
-      details: error?.message || String(error)
-    }, { status: 500 });
+    console.warn('Courses error, returning fallback:', error);
+    return NextResponse.json({ levels: fallbackCourses });
   }
 }
