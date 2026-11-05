@@ -57,11 +57,26 @@ export async function GET(
     }
 
     let vocabRecords: any[] = [];
+    let parsedVocabList: any[] = [];
     try {
-      const vocabWordNames: string[] = JSON.parse(lesson.vocabularyItemsJson || '[]');
-      vocabRecords = await prisma.vocabulary.findMany({
-        where: { word: { in: vocabWordNames } },
-      });
+      const rawVocab = JSON.parse(lesson.vocabularyItemsJson || '[]');
+      if (Array.isArray(rawVocab)) {
+        parsedVocabList = rawVocab;
+        const wordStrings: string[] = rawVocab
+          .map((item: any) => (typeof item === 'string' ? item : item?.word))
+          .filter(Boolean);
+
+        if (wordStrings.length > 0) {
+          vocabRecords = await prisma.vocabulary.findMany({
+            where: { word: { in: wordStrings } },
+          });
+        }
+
+        // If DB returned nothing or fewer items, enrich with any objects in rawVocab
+        if (vocabRecords.length === 0 && rawVocab.some((item: any) => typeof item === 'object' && item?.word)) {
+          vocabRecords = rawVocab.map((item: any) => typeof item === 'object' ? item : { word: item });
+        }
+      }
     } catch (e) {}
 
     let userProgress = null;

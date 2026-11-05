@@ -19,7 +19,8 @@ import {
   HelpCircle,
   RotateCcw,
   Sparkles,
-  Loader2
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 import { playSuccessSound, playErrorSound, playFanfareSound } from '@/lib/audio-feedback';
 
@@ -39,6 +40,7 @@ export default function DuolingoLessonRunnerPage() {
   const [isFinished, setIsFinished] = useState(false);
   const [xpEarned, setXpEarned] = useState(15);
   const [quitModalOpen, setQuitModalOpen] = useState(false);
+  const [theoryModalOpen, setTheoryModalOpen] = useState(false);
 
   // Current Exercise State
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
@@ -69,35 +71,56 @@ export default function DuolingoLessonRunnerPage() {
         if (data.lesson) {
           setLesson(data.lesson);
           const rawExercises = data.lesson.exercises || [];
-
-          // If lesson has fewer than 3 exercises, supplement with standard Duolingo exercises derived from lesson vocabulary
           let finalExercises = [...rawExercises];
-          if (finalExercises.length < 3 && data.lesson.vocabulary?.length > 0) {
-            const v = data.lesson.vocabulary;
-            // Add match pairs
-            finalExercises.push({
-              id: 'synth-match-1',
-              type: 'MATCH_PAIRS',
-              prompt: 'Tap the matching pairs',
-              options: v.slice(0, 4).map((w: any) => ({
-                left: w.word,
-                right: w.translation || w.definition.slice(0, 30)
-              })),
-              correctAnswer: 'ALL_MATCHED',
-              explanation: 'Match the English terms with their definitions.'
-            });
 
-            // Add word bank builder
-            if (v[0]?.exampleSentence) {
-              const sentence = v[0].exampleSentence.replace(/[.!?]/g, '');
-              const words = sentence.split(/\s+/);
+          const vocabList = data.lesson.vocabularyWords || data.lesson.vocabulary || [];
+          const examplesList = data.lesson.examples || [];
+
+          // If lesson has fewer than 3 exercises, supplement with standard Duolingo exercises derived from lesson vocabulary & examples
+          if (finalExercises.length < 3) {
+            if (examplesList.length > 0) {
+              examplesList.forEach((ex: any, idx: number) => {
+                const cleanPhrase = (ex.phrase || '').replace(/[.!?,]/g, '').trim();
+                const words = cleanPhrase.split(/\s+/).filter(Boolean);
+                if (words.length > 0) {
+                  finalExercises.push({
+                    id: `synth-reorder-${idx}`,
+                    type: 'REORDER',
+                    prompt: `Translate: "${ex.translation || ex.phrase}"`,
+                    audioPrompt: ex.phrase,
+                    options: [...words, 'a', 'the', 'is', 'not'].sort(() => Math.random() - 0.5),
+                    correctAnswer: cleanPhrase,
+                    explanation: `Correct English: "${ex.phrase}".`
+                  });
+
+                  if (idx === 0) {
+                    finalExercises.push({
+                      id: `synth-listen-${idx}`,
+                      type: 'LISTEN_SELECT',
+                      prompt: 'Listen and assemble the sentence',
+                      audioPrompt: ex.phrase,
+                      options: [...words, 'good', 'day'].sort(() => Math.random() - 0.5),
+                      correctAnswer: cleanPhrase,
+                      explanation: `Audio was: "${ex.phrase}".`
+                    });
+                  }
+                }
+              });
+            }
+
+            if (vocabList.length >= 2) {
+              const pairItems = vocabList.slice(0, 4).map((w: any) => {
+                const word = typeof w === 'object' ? w.word : w;
+                const meaning = typeof w === 'object' ? (w.translation || w.definition || word) : word;
+                return { left: word, right: (meaning || '').split('/')[0].trim() };
+              });
               finalExercises.push({
-                id: 'synth-reorder-1',
-                type: 'REORDER',
-                prompt: `Translate: "${v[0].translation || v[0].definition}"`,
-                options: [...words, 'is', 'not', 'have'].sort(() => Math.random() - 0.5),
-                correctAnswer: sentence,
-                explanation: `Correct English sentence: "${sentence}".`
+                id: 'synth-match-pairs',
+                type: 'MATCH_PAIRS',
+                prompt: 'Tap the matching pairs',
+                options: pairItems,
+                correctAnswer: 'ALL_MATCHED',
+                explanation: 'Match each English term with its definition.'
               });
             }
           }
@@ -368,6 +391,17 @@ export default function DuolingoLessonRunnerPage() {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        {/* Theory & Phonics Study Guide Button */}
+        <button
+          type="button"
+          onClick={() => setTheoryModalOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-900 dark:text-blue-300 text-xs font-bold transition-colors"
+          title="View Lesson Theory & Phonics"
+        >
+          <BookOpen className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+          <span className="hidden sm:inline">Theory</span>
+        </button>
 
         {/* Hearts counter */}
         <div className="flex items-center gap-1.5 text-rose-500 font-extrabold text-sm" title="Lives remaining">
@@ -782,6 +816,166 @@ export default function DuolingoLessonRunnerPage() {
                 className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-rose-600 font-bold text-xs py-2.5 rounded-xl transition-colors"
               >
                 End Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* THEORY & PHONICS STUDY GUIDE MODAL */}
+      {theoryModalOpen && lesson && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[85vh] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-900 dark:text-blue-300">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    {lesson.title || 'Lesson Theory'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Level {lesson.levelCode || 'A0'} Study Guide & Phonics
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTheoryModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Scrollable Material */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Objectives */}
+              {Array.isArray(lesson.objectives) && lesson.objectives.length > 0 && (
+                <div className="bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl p-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-2">
+                    Learning Objectives
+                  </h4>
+                  <ul className="space-y-1.5 text-xs text-blue-950 dark:text-blue-200">
+                    {lesson.objectives.map((obj: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-emerald-600 font-bold">✓</span>
+                        <span>{obj}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Theory / Explanation */}
+              {lesson.explanationHtml && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Phonics & Explanation
+                  </h4>
+                  <div
+                    className="prose dark:prose-invert prose-sm max-w-none text-xs leading-relaxed text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800"
+                    dangerouslySetInnerHTML={{ __html: lesson.explanationHtml }}
+                  />
+                </div>
+              )}
+
+              {/* Vocabulary */}
+              {(lesson.vocabularyDetails?.length > 0 || lesson.vocabularyWords?.length > 0) && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Core Vocabulary (Tap to listen)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {(lesson.vocabularyDetails && lesson.vocabularyDetails.length > 0
+                      ? lesson.vocabularyDetails
+                      : (lesson.vocabularyWords || []).map((w: any) => typeof w === 'object' ? w : { word: w })
+                    ).map((item: any, i: number) => {
+                      const word = item.word || item;
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+                                {word}
+                              </span>
+                              {item.phonetic && (
+                                <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400">
+                                  {item.phonetic}
+                                </span>
+                              )}
+                            </div>
+                            {(item.translation || item.definition) && (
+                              <p className="text-[11px] text-slate-500 line-clamp-1">
+                                {item.translation || item.definition}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => playAudio(word)}
+                            className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                            title={`Listen to ${word}`}
+                          >
+                            <Volume2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Conversational Examples */}
+              {Array.isArray(lesson.examples) && lesson.examples.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Conversational Phrases
+                  </h4>
+                  <div className="space-y-2">
+                    {lesson.examples.map((ex: any, i: number) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                            {ex.phrase || ex.en || ex}
+                          </p>
+                          {(ex.translation || ex.ur || ex.meaning) && (
+                            <p className="text-[11px] text-slate-500">
+                              {ex.translation || ex.ur || ex.meaning}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => playAudio(ex.phrase || ex.en || ex)}
+                          className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
+                          title="Listen to phrase"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setTheoryModalOpen(false)}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-extrabold text-xs shadow-md transition-colors"
+              >
+                Back to Exercise
               </button>
             </div>
           </div>
