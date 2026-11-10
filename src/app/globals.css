@@ -9,7 +9,7 @@
 
 .dark {
   --foreground-rgb: 241, 245, 249;
-  --background-rgb: 15, 23, 42;
+  --background-rgb: 9, 14, 28;
 }
 
 body {
@@ -17,60 +17,305 @@ body {
   background-color: rgb(var(--background-rgb));
   min-height: 100vh;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  overflow-x: hidden;
 }
 
-/* Modern, Clean SaaS Buttons (No tacky neon glows) */
-.btn-primary {
-  background-color: #1e3a8a;
+/* ==========================================================================
+   ADVANCED 3D TACTILE DESIGN SYSTEM & SMOOTH ANIMATIONS
+   ========================================================================== */
+
+/* Subtle Architectural Grid & Ambient Mesh */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+}
+
+.dark .bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+}
+
+.hero-mesh {
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(30, 58, 138, 0.08) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 85%, rgba(245, 158, 11, 0.06) 0px, transparent 50%);
+}
+
+.dark .hero-mesh {
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 85%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
+}
+
+/* 3D Perspective Containers */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Tactile 3D Buttons */
+.btn-primary,
+.btn-3d-primary {
+  position: relative;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
-  font-weight: 600;
-  border-radius: 0.875rem;
-  transition: all 0.15s ease-in-out;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-weight: 700;
+  border-radius: 1rem;
+  border: 1px solid #3b82f6;
+  box-shadow: 
+    0 5px 0 0 #1e3a8a,
+    0 8px 16px -4px rgba(30, 58, 138, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
 }
 
-.btn-primary:hover {
-  background-color: #1d4ed8;
+.btn-primary:hover,
+.btn-3d-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 
+    0 7px 0 0 #1e3a8a,
+    0 12px 20px -4px rgba(30, 58, 138, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
 }
 
-.btn-primary:active {
-  transform: translateY(1px);
+.btn-primary:active,
+.btn-3d-primary:active {
+  transform: translateY(3px);
+  box-shadow: 
+    0 2px 0 0 #1e3a8a,
+    0 4px 8px -2px rgba(30, 58, 138, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
 }
 
-.btn-secondary {
+/* 3D Emerald Duolingo Action Button */
+.btn-success,
+.btn-3d-emerald {
+  position: relative;
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 1rem;
+  border: 1px solid #34d399;
+  box-shadow: 
+    0 5px 0 0 #047857,
+    0 8px 16px -4px rgba(5, 150, 105, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
+}
+
+.btn-success:hover,
+.btn-3d-emerald:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 
+    0 7px 0 0 #047857,
+    0 14px 22px -4px rgba(5, 150, 105, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-success:active,
+.btn-3d-emerald:active {
+  transform: translateY(3px);
+  box-shadow: 
+    0 2px 0 0 #047857,
+    0 4px 8px -2px rgba(5, 150, 105, 0.25);
+}
+
+/* 3D Amber Gold Button */
+.btn-3d-amber {
+  position: relative;
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+  color: #0f172a;
+  font-weight: 800;
+  border-radius: 1rem;
+  border: 1px solid #fcd34d;
+  box-shadow: 
+    0 5px 0 0 #b45309,
+    0 8px 16px -4px rgba(217, 119, 6, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-3d-amber:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 7px 0 0 #b45309,
+    0 12px 20px -4px rgba(217, 119, 6, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
+}
+
+.btn-3d-amber:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 0 #b45309;
+}
+
+/* 3D Secondary Neutral Button */
+.btn-secondary,
+.btn-3d-secondary {
   background-color: #ffffff;
   color: #1e293b;
-  border: 1px solid #e2e8f0;
-  font-weight: 600;
-  border-radius: 0.875rem;
-  transition: all 0.15s ease-in-out;
+  border: 2px solid #e2e8f0;
+  font-weight: 700;
+  border-radius: 1rem;
+  box-shadow: 
+    0 4px 0 0 #cbd5e1,
+    0 6px 12px -4px rgba(15, 23, 42, 0.06);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, background-color 0.18s ease;
 }
 
-.dark .btn-secondary {
+.dark .btn-secondary,
+.dark .btn-3d-secondary {
   background-color: #1e293b;
   color: #f1f5f9;
   border-color: #334155;
+  box-shadow: 
+    0 4px 0 0 #0f172a,
+    0 6px 12px -4px rgba(0, 0, 0, 0.4);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover,
+.btn-3d-secondary:hover {
+  transform: translateY(-2px);
   background-color: #f8fafc;
   border-color: #cbd5e1;
+  box-shadow: 
+    0 6px 0 0 #cbd5e1,
+    0 10px 16px -4px rgba(15, 23, 42, 0.1);
 }
 
-.dark .btn-secondary:hover {
-  background-color: #334155;
+.dark .btn-secondary:hover,
+.dark .btn-3d-secondary:hover {
+  background-color: #263349;
+  border-color: #475569;
+  box-shadow: 
+    0 6px 0 0 #0f172a,
+    0 10px 16px -4px rgba(0, 0, 0, 0.5);
 }
 
-.btn-success {
-  background-color: #15803d;
-  color: #ffffff;
-  font-weight: 600;
-  border-radius: 0.875rem;
-  transition: all 0.15s ease-in-out;
+.btn-secondary:active,
+.btn-3d-secondary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 0 #cbd5e1;
 }
 
-.btn-success:hover {
-  background-color: #16a34a;
+.dark .btn-secondary:active,
+.dark .btn-3d-secondary:active {
+  box-shadow: 0 2px 0 0 #0f172a;
+}
+
+/* 3D Elevated Cards */
+.card-3d {
+  background-color: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 1.5rem;
+  box-shadow: 
+    0 6px 0 0 #e2e8f0,
+    0 12px 24px -6px rgba(15, 23, 42, 0.06);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s ease;
+}
+
+.dark .card-3d {
+  background-color: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 
+    0 6px 0 0 #1e293b,
+    0 12px 24px -6px rgba(0, 0, 0, 0.45);
+}
+
+.card-3d-interactive:hover {
+  transform: translateY(-5px);
+  border-color: #93c5fd;
+  box-shadow: 
+    0 10px 0 0 #bfdbfe,
+    0 20px 30px -8px rgba(30, 58, 138, 0.14);
+}
+
+.dark .card-3d-interactive:hover {
+  border-color: #1d4ed8;
+  box-shadow: 
+    0 10px 0 0 #172554,
+    0 20px 30px -8px rgba(0, 0, 0, 0.65);
+}
+
+.card-3d-interactive:active {
+  transform: translateY(1px);
+}
+
+/* Smooth Keyframe Animations */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+@keyframes floatDelayed {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 5s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatDelayed 4.2s ease-in-out 1.5s infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+/* Glossy Top Shine for 3D Stepping Stones */
+.stone-shine::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 16%;
+  width: 68%;
+  height: 28%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 9999px;
+  pointer-events: none;
 }
 
 /* Clean Custom Scrollbar */

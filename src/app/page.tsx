@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -16,43 +18,198 @@ import {
   Zap,
   ShieldCheck,
   Star,
-  Users,
   Check,
   GraduationCap,
   Award,
+  Volume2,
+  Sparkles,
+  Flame,
+  Compass,
+  Play,
 } from 'lucide-react';
 
 export default function HomePage() {
+  const [activeDemoTab, setActiveDemoTab] = useState<'A0' | 'B1' | 'C2'>('A0');
+  const [speakingSample, setSpeakingSample] = useState(false);
+
+  const playNativeAudio = (text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    setSpeakingSample(true);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.95;
+    utterance.onend = () => setSpeakingSample(false);
+    utterance.onerror = () => setSpeakingSample(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const heroDemos = {
+    A0: {
+      badge: 'A0 • Absolute Beginner Phonics',
+      prompt: 'Tap the speaker to hear native pronunciation & Urdu/Spanish meaning:',
+      phrase: 'Good morning! Nice to meet you.',
+      phonetic: '/ɡʊd ˈmɔːr.nɪŋ! naɪs tuː miːt juː/',
+      translation: 'صبح بخیر! آپ سے مل کر خوشی ہوئی۔ • ¡Buenos días! Mucho gusto.',
+      tip: 'Notice the long "ee" vowel sound in "meet" (/miːt/).',
+      xp: '+15 XP',
+    },
+    B1: {
+      badge: 'B1 • Career & Interview Fluency',
+      prompt: 'Workplace Grammar & Tense Precision:',
+      phrase: 'I have been managing cross-functional teams for three years.',
+      phonetic: '/aɪ hæv bɪn ˈmæn.ɪ.dʒɪŋ krɒs-ˈfʌŋk.ʃən.əl tiːmz/',
+      translation: 'میں تین سال سے مختلف ٹیموں کی قیادت کر رہا ہوں۔',
+      tip: 'Use Present Perfect Continuous ("have been + -ing") for actions that started in the past and continue now.',
+      xp: '+25 XP',
+    },
+    C2: {
+      badge: 'C2 • Executive & Academic Mastery',
+      prompt: 'Advanced Negative Inversion & Diplomatic Rhetoric:',
+      phrase: 'Seldom have we witnessed such a transformative technological shift.',
+      phonetic: '/ˈsel.dəm hæv wiː ˈwɪt.nəst sʌtʃ ə trænsˈfɔː.mə.tɪv ʃɪft/',
+      translation: 'ہم نے شاذ و نادر ہی ایسی انقلابی تکنیکی تبدیلی دیکھی ہے۔',
+      tip: 'Placing a negative adverbial ("Seldom") at the start triggers subject-auxiliary inversion ("have we").',
+      xp: '+50 XP',
+    },
+  };
+
   const cefrLevels = [
-    { code: 'A0', title: 'Absolute Zero', desc: 'Alphabet, phonics, essential greetings, numbers & foundational words.' },
-    { code: 'A1', title: 'Beginner', desc: 'Daily routines, introductions, family, food, shopping & present simple.' },
-    { code: 'A2', title: 'Elementary', desc: 'Travel, past experiences, airport/hotel transit, health & future plans.' },
-    { code: 'B1', title: 'Intermediate', desc: 'Workplace interviews, business emails, conditionals & storytelling.' },
-    { code: 'B2', title: 'Upper Intermediate', desc: 'Negotiations, keynote presentations, idioms, phrasal verbs & passive voice.' },
-    { code: 'C1', title: 'Advanced', desc: 'Negative inversion, diplomatic tact, academic essays & subtle rhetoric.' },
-    { code: 'C2', title: 'Proficiency', desc: 'Near-native mastery, subtle irony, litotes & complex contractual syntax.' },
+    {
+      code: 'A0',
+      title: 'Absolute Zero',
+      desc: '26 Alphabet letters, short & long vowels, phonics sounds, survival greetings & numbers 1–100.',
+      color: 'from-emerald-500 to-emerald-700',
+      shadow: 'shadow-[0_6px_0_0_#047857]',
+      badgeBg: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    },
+    {
+      code: 'A1',
+      title: 'Beginner',
+      desc: 'Daily routines, introductions, family, food, shopping & present simple sentence building.',
+      color: 'from-teal-500 to-teal-700',
+      shadow: 'shadow-[0_6px_0_0_#0f766e]',
+      badgeBg: 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+    },
+    {
+      code: 'A2',
+      title: 'Elementary',
+      desc: 'Airport transit, hotel check-in, past experiences, health appointments & future plans.',
+      color: 'from-cyan-600 to-cyan-800',
+      shadow: 'shadow-[0_6px_0_0_#155e75]',
+      badgeBg: 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
+    },
+    {
+      code: 'B1',
+      title: 'Intermediate',
+      desc: 'Job interviews, professional emails, conditional clauses & persuasive storytelling.',
+      color: 'from-blue-600 to-blue-800',
+      shadow: 'shadow-[0_6px_0_0_#1e40af]',
+      badgeBg: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    },
+    {
+      code: 'B2',
+      title: 'Upper Inter.',
+      desc: 'Business negotiations, keynote presentations, idioms, phrasal verbs & passive voice.',
+      color: 'from-indigo-600 to-indigo-800',
+      shadow: 'shadow-[0_6px_0_0_#3730a3]',
+      badgeBg: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+    },
+    {
+      code: 'C1',
+      title: 'Advanced',
+      desc: 'Negative inversion, diplomatic tact, IELTS/Cambridge essays & subtle academic rhetoric.',
+      color: 'from-purple-600 to-purple-800',
+      shadow: 'shadow-[0_6px_0_0_#6b21a8]',
+      badgeBg: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    },
+    {
+      code: 'C2',
+      title: 'Proficiency',
+      desc: 'Near-native mastery, subtle irony, litotes, executive leadership & complex syntax.',
+      color: 'from-amber-500 to-amber-700',
+      shadow: 'shadow-[0_6px_0_0_#b45309]',
+      badgeBg: 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    },
   ];
 
   const skillsList = [
-    { title: 'Speaking Lab', desc: 'Voice recognition analysis with pronunciation precision scoring.', icon: Mic },
-    { title: 'Wikipedia Real-World Reader', desc: 'Read live encyclopedic articles with audio reader and vocabulary extraction.', icon: Globe },
-    { title: 'SRS Vocabulary Bank', desc: 'SuperMemo SM-2 spaced repetition engine for long-term retention.', icon: BookmarkCheck },
-    { title: 'Contextual Grammar', desc: 'Rule mechanics, interactive drills, and common pitfall analyses.', icon: CheckCircle2 },
-    { title: 'Listening Comprehension', desc: 'Real native conversations, speed control (0.8x-1.2x), and dictation.', icon: Headphones },
-    { title: 'Academic Writing Lab', desc: 'IELTS/Cambridge level evaluation, grammar correction, and style suggestions.', icon: PenTool },
-    { title: 'Miami AI Coach', desc: 'Patient 24/7 tutor powered by Google Gemini for roleplay & instant answers.', icon: Brain },
-    { title: 'Accredited Certificates', desc: 'Official CEFR certificates with unique IDs and online verification.', icon: Award },
+    {
+      title: '3D Gamified Learn Path',
+      desc: 'Interactive stepping stones, phonics study sheets, word banks, and instant XP rewards.',
+      icon: Compass,
+      href: '/learn',
+      accent: 'bg-emerald-500 shadow-[0_4px_0_0_#047857]',
+    },
+    {
+      title: 'Speaking Lab & Speech AI',
+      desc: 'Real-time voice recognition with syllable-level pronunciation accuracy scoring.',
+      icon: Mic,
+      href: '/speaking',
+      accent: 'bg-blue-600 shadow-[0_4px_0_0_#1e3a8a]',
+    },
+    {
+      title: 'Wikipedia Real-World Reader',
+      desc: 'Read live encyclopedic articles with audio narration and 1-click vocabulary extraction.',
+      icon: Globe,
+      href: '/reading',
+      accent: 'bg-indigo-600 shadow-[0_4px_0_0_#3730a3]',
+    },
+    {
+      title: 'SRS Vocabulary Bank',
+      desc: 'SuperMemo SM-2 spaced repetition flashcards with native audio and Urdu/Spanish meanings.',
+      icon: BookmarkCheck,
+      href: '/vocabulary',
+      accent: 'bg-amber-500 shadow-[0_4px_0_0_#b45309]',
+    },
+    {
+      title: 'Contextual Grammar Studio',
+      desc: 'Visual rule mechanics, interactive tense drills, and common error diagnostics.',
+      icon: CheckCircle2,
+      href: '/grammar',
+      accent: 'bg-teal-600 shadow-[0_4px_0_0_#0f766e]',
+    },
+    {
+      title: 'Listening Comprehension',
+      desc: 'Native dialogues with variable speed control (0.65x turtle to 1.2x) and dictation.',
+      icon: Headphones,
+      href: '/listening',
+      accent: 'bg-cyan-600 shadow-[0_4px_0_0_#155e75]',
+    },
+    {
+      title: 'Academic Writing Lab',
+      desc: 'IELTS & Cambridge level evaluation, grammar correction, and lexical upgrades.',
+      icon: PenTool,
+      href: '/writing',
+      accent: 'bg-purple-600 shadow-[0_4px_0_0_#6b21a8]',
+    },
+    {
+      title: 'Miami AI 24/7 Coach',
+      desc: 'Interactive roleplay tutor powered by Google Gemini for interviews & daily conversation.',
+      icon: Brain,
+      href: '/ai-coach',
+      accent: 'bg-rose-600 shadow-[0_4px_0_0_#9f1239]',
+    },
   ];
 
   const testimonials = [
     {
+      name: 'Muhammad Ali',
+      country: 'Pakistan',
+      flag: '🇵🇰',
+      role: 'Full-Stack Software Engineer',
+      native: 'Urdu',
+      quote:
+        'A0 se le kar C1 tak ka safar itna smooth aur interactive hai ke bilkul asli Duolingo aur Oxford Academy ka combination lagta hai. Har lafz ki audio aur Urdu translation ne meri fluency 10x barha di.',
+    },
+    {
       name: 'Li Wei',
       country: 'China',
       flag: '🇨🇳',
-      role: 'Senior Software Engineer',
+      role: 'Senior Systems Architect',
       native: 'Mandarin',
       quote:
-        'EnglishMiami helped me pass my tech job interview in English. The AI Coach corrected my tenses patiently and gave me the confidence to speak fluently during cross-border architecture reviews.',
+        'EnglishMiami helped me pass my international tech interview. The 3D learning path and AI Coach corrected my tense errors patiently and gave me real confidence.',
     },
     {
       name: 'Camila Santos',
@@ -61,16 +218,7 @@ export default function HomePage() {
       role: 'Product Marketing Lead',
       native: 'Portuguese',
       quote:
-        'The Spaced Repetition vocabulary engine and post-lesson assessments are remarkable. For the first time, I remember 95% of the words I study. The calm Oxford layout is a breath of fresh air.',
-    },
-    {
-      name: 'Muhammad Ali',
-      country: 'Pakistan',
-      flag: '🇵🇰',
-      role: 'Full-Stack Developer',
-      native: 'Urdu',
-      quote:
-        'The Wikipedia Reader integration is a game-changer. Being able to read real English articles with instant audio playback and save technical terms directly to my SRS bank accelerated my vocabulary ten-fold.',
+        'The tactile 3D study cards, phonics guidebooks, and Spaced Repetition engine make studying addictive. I remember 95% of every unit I complete.',
     },
     {
       name: 'Priya Sharma',
@@ -79,162 +227,239 @@ export default function HomePage() {
       role: 'Corporate Strategy Consultant',
       native: 'Hindi',
       quote:
-        'The C1 and C2 modules on negative inversion and diplomatic hedging are unparalleled. The academic rigor here matches high-end British and American universities.',
+        'The C1 and C2 modules on negative inversion and executive rhetoric are unmatched. The UI feels ultra-responsive, clean, and crafted with real engineering care.',
     },
   ];
 
   const faqs = [
     {
       q: 'Can I start if I know zero English (A0 level)?',
-      a: 'Yes, absolutely. EnglishMiami starts right from the 26 alphabet letters, phonics, numbers, and basic survival greetings with clear translations for your native language.',
+      a: 'Yes! Our A0 Foundation track starts right from the 26 English alphabet letters, short and long vowel phonics, numbers 1–100, and survival greetings with interactive audio and Urdu, Hindi, Spanish, and Arabic translations.',
+    },
+    {
+      q: 'How does the 3D Duolingo Learning Path work?',
+      a: 'Every unit features interactive 3D stepping stones. Tapping any node opens a comprehensive Study Sheet with Theory & Phonics, Vocabulary Flashcards with audio, and Conversational Phrases before you jump into gamified exercises.',
     },
     {
       q: 'What is the Wikipedia Real-World Reader?',
-      a: 'Our reading lab connects directly to Wikipedia. You can search any topic (AI, History, Space, Business, Medicine), read live summaries, listen to audio narration, view CEFR reading levels, and save extracted vocabulary with one click.',
+      a: 'Our reading studio connects live to Wikipedia. You can search any topic (Science, AI, History, Business), listen to native text-to-speech narration, inspect CEFR difficulty, and save new words in one click.',
     },
     {
-      q: 'How does the certificate approval workflow function?',
-      a: 'When you complete a CEFR level and achieve the required test score, you submit an application. Our Academic Board reviews your submissions, assigns an official standing grade (Distinction, Merit, Pass), and issues a verifiable certificate with a unique online registry ID.',
-    },
-    {
-      q: 'How does the Miami AI Coach work?',
-      a: 'Miami AI Coach is powered by Google Gemini. It adapts to your CEFR level, remembers your common grammatical mistakes, explains rules clearly, and conducts simulated professional scenarios (job interviews, hotel check-in, business negotiations).',
-    },
-    {
-      q: 'Is there a free tier available?',
-      a: 'Yes. You can access the Free Starter plan with complete A0 and A1 courses, basic AI Coach sessions, and daily vocabulary tests without ever entering credit card details.',
+      q: 'Are the CEFR Certificates verifiable online?',
+      a: 'Yes. Upon completing a CEFR level and passing the assessment, you receive an official EnglishMiami Certificate with a unique verification code that employers and universities can verify online.',
     },
   ];
+
+  const currentDemo = heroDemos[activeDemoTab];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      {/* =====================================================================
+          HERO SECTION: 3D INTERACTIVE SHOWCASE & FLOATING PERSPECTIVE CARDS
+         ===================================================================== */}
+      <section className="relative overflow-hidden pt-10 pb-24 lg:pt-16 lg:pb-32 border-b-2 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 bg-grid-pattern hero-mesh">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Headline */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-oxford-50 dark:bg-oxford-950 text-oxford-700 dark:text-oxford-300 text-xs sm:text-sm font-semibold border border-oxford-200 dark:border-oxford-800">
-                <GraduationCap className="w-4 h-4 text-oxford-600 dark:text-oxford-400" />
-                <span>CEFR Aligned Curriculum • Absolute Beginner (A0) to Proficiency (C2)</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+            {/* LEFT COLUMN: HEADLINE & 3D TACTILE CTAS */}
+            <div className="lg:col-span-7 space-y-7 text-center lg:text-left">
+              {/* Floating 3D Pill Badge */}
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-blue-50 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 text-xs sm:text-sm font-extrabold border-2 border-blue-200 dark:border-blue-800 shadow-[0_4px_0_0_#bfdbfe] dark:shadow-[0_4px_0_0_#1e3a8a]">
+                <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+                <span>CEFR A0 to C2 • Interactive 3D Learning Path & AI Speech Lab</span>
               </div>
 
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.08]">
-                Master the English Language with{' '}
-                <span className="text-oxford-700 dark:text-oxford-400">
-                  Academic Precision.
-                </span>
+              <h1 className="text-4xl sm:text-6xl lg:text-[64px] font-black tracking-tight text-slate-900 dark:text-white leading-[1.06]">
+                Master English from{' '}
+                <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-emerald-600 dark:from-blue-400 dark:via-indigo-400 dark:to-emerald-400 bg-clip-text text-transparent">
+                  Zero Phonics
+                </span>{' '}
+                to Native Fluency.
               </h1>
 
-              <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-                A serious, full-stack educational platform built for learners across China, India, Pakistan, Brazil, the Middle East, Spain, and Latin America. Learn vocabulary, grammar, pronunciation, live Wikipedia reading, and fluent conversations.
+              <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-medium">
+                Experience a tactile 3D learning path engineered for serious learners. Master alphabet phonics, bilingual vocabulary with native audio, live Wikipedia reading, and 24/7 AI speaking practice.
               </p>
 
-              {/* CTAs */}
+              {/* 3D Tactile CTA Buttons */}
               <div className="flex flex-col sm:flex-row items-center gap-4 pt-2 justify-center lg:justify-start">
                 <Link
-                  href="/signup"
-                  className="btn-primary w-full sm:w-auto text-base font-semibold px-8 py-4 rounded-xl flex items-center justify-center gap-2 group"
+                  href="/learn"
+                  className="btn-3d-emerald w-full sm:w-auto text-base font-black px-8 py-4 rounded-2xl flex items-center justify-center gap-2.5 group uppercase tracking-wide"
                 >
-                  <span>Start Learning Free</span>
+                  <Play className="w-5 h-5 fill-white" />
+                  <span>Start 3D Learn Path</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
 
                 <Link
                   href="/courses"
-                  className="btn-secondary w-full sm:w-auto text-base font-semibold px-7 py-3.5 rounded-xl flex items-center justify-center gap-2"
+                  className="btn-3d-secondary w-full sm:w-auto text-base font-extrabold px-7 py-4 rounded-2xl flex items-center justify-center gap-2"
                 >
-                  <BookOpen className="w-5 h-5 text-oxford-600 dark:text-oxford-400" />
-                  <span>Explore Curriculum (A0–C2)</span>
+                  <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <span>Explore A0–C2 Curriculum</span>
                 </Link>
               </div>
 
-              {/* Trust badges */}
-              <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-slate-500 font-medium">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>No credit card required</span>
+              {/* Tactile 3D Metric Pills */}
+              <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto lg:mx-0">
+                <div className="p-3 rounded-2xl bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center font-black text-xs shrink-0">
+                    A0–C2
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900 dark:text-white">7 Levels</div>
+                    <div className="text-[10px] font-bold text-slate-500">55+ Interactive Units</div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Free Placement Test</span>
+
+                <div className="p-3 rounded-2xl bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center shrink-0">
+                    <Volume2 className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900 dark:text-white">Native Audio</div>
+                    <div className="text-[10px] font-bold text-slate-500">IPA & Phonics</div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Live Wikipedia ESL Reader</span>
+
+                <div className="p-3 rounded-2xl bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center shrink-0">
+                    <Flame className="w-4 h-4 fill-amber-500" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900 dark:text-white">3D Quests</div>
+                    <div className="text-[10px] font-bold text-slate-500">Streaks & Chests</div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Verifiable Academic Certificates</span>
+
+                <div className="p-3 rounded-2xl bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center shrink-0">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900 dark:text-white">Verified</div>
+                    <div className="text-[10px] font-bold text-slate-500">CEFR Certificates</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Interactive Coach & Reading Preview Card */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md rounded-2xl p-6 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-lg space-y-5">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
+            {/* RIGHT COLUMN: 3D FLOATING INTERACTIVE PHONICS & LESSON STUDIO */}
+            <div className="lg:col-span-5 relative perspective-1000">
+              {/* Floating 3D Badge Top-Left */}
+              <div className="hidden sm:flex absolute -top-6 -left-6 z-20 items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-400 text-slate-950 font-black text-xs border-2 border-amber-300 shadow-[0_5px_0_0_#b45309] animate-float-slow">
+                <Flame className="w-4 h-4 fill-slate-950" />
+                <span>14 DAY STREAK ACTIVE!</span>
+              </div>
+
+              {/* Floating 3D Badge Bottom-Right */}
+              <div className="hidden sm:flex absolute -bottom-5 -right-4 z-20 items-center gap-2 px-3.5 py-2 rounded-2xl bg-emerald-500 text-white font-black text-xs border-2 border-emerald-300 shadow-[0_5px_0_0_#047857] animate-float-delayed">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>A0 PHONICS READY • 100% FREE</span>
+              </div>
+
+              {/* Main 3D Interactive Studio Card */}
+              <div className="relative mx-auto max-w-lg card-3d p-6 sm:p-7 space-y-5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 shadow-[0_10px_0_0_#cbd5e1,0_25px_50px_-12px_rgba(15,23,42,0.2)] dark:shadow-[0_10px_0_0_#1e293b,0_25px_50px_-12px_rgba(0,0,0,0.7)]">
+                {/* Studio Top Bar */}
+                <div className="flex items-center justify-between border-b-2 border-slate-100 dark:border-slate-800 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-oxford-800 text-white flex items-center justify-center font-bold text-sm">
-                      EM
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-blue-600 to-blue-800 text-white flex items-center justify-center font-black text-sm shadow-[0_4px_0_0_#1e3a8a]">
+                      3D
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 dark:text-white text-sm">Miami AI English Coach</h3>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">Ready to practice</span>
+                      <h3 className="font-black text-slate-900 dark:text-white text-sm">
+                        Interactive Lesson Preview
+                      </h3>
+                      <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                        Tap a level below to test live audio
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Level Switcher Pills */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                    {(['A0', 'B1', 'C2'] as const).map((lvl) => (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setActiveDemoTab(lvl)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                          activeDemoTab === lvl
+                            ? 'bg-blue-700 text-white shadow-[0_2px_0_0_#1e3a8a]'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Active Demo Content */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      {currentDemo.badge}
+                    </span>
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                      {currentDemo.xp}
+                    </span>
+                  </div>
+
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    {currentDemo.prompt}
+                  </p>
+
+                  {/* 3D Phrase Audio Box */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
+                          "{currentDemo.phrase}"
+                        </p>
+                        <p className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                          {currentDemo.phonetic}
+                        </p>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => playNativeAudio(currentDemo.phrase)}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 cursor-pointer transition-all ${
+                          speakingSample
+                            ? 'bg-emerald-500 text-white translate-y-0.5 shadow-[0_2px_0_0_#047857]'
+                            : 'bg-blue-700 hover:bg-blue-600 text-white shadow-[0_4px_0_0_#1e3a8a] hover:-translate-y-0.5 active:translate-y-0.5'
+                        }`}
+                        title="Listen to native pronunciation"
+                      >
+                        <Volume2 className={`w-6 h-6 ${speakingSample ? 'animate-bounce' : ''}`} />
+                      </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                      {currentDemo.translation}
                     </div>
                   </div>
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-oxford-100 dark:bg-oxford-950 text-oxford-700 dark:text-oxford-300">
-                    Live Demo
+
+                  {/* Phonics / Grammar Note */}
+                  <div className="p-3.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <strong className="font-extrabold text-amber-800 dark:text-amber-300">💡 Study Sheet Tip: </strong>
+                    {currentDemo.tip}
+                  </div>
+                </div>
+
+                {/* Bottom Action Link */}
+                <div className="pt-2 flex items-center justify-between border-t-2 border-slate-100 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-500">
+                    Includes Theory, Audio & Quizzes
                   </span>
-                </div>
-
-                {/* Simulated Conversation */}
-                <div className="space-y-3 text-xs">
-                  {/* User message with error */}
-                  <div className="flex justify-end">
-                    <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl rounded-tr-none px-3.5 py-2.5 max-w-[85%] text-slate-800 dark:text-slate-200 font-medium">
-                      "I have went to the hospital yesterday."
-                    </div>
-                  </div>
-
-                  {/* AI Coach correction response */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-oxford-700 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                      AI
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl rounded-tl-none p-3.5 space-y-2 text-slate-800 dark:text-slate-200 leading-relaxed shadow-sm">
-                      <p className="font-bold text-oxford-700 dark:text-oxford-400">
-                        Grammar Correction:
-                      </p>
-                      <p>
-                        Instead of <span className="line-through text-slate-400">have went</span>, say:
-                        <br />
-                        <strong className="text-emerald-700 dark:text-emerald-400 font-bold">"I went to the hospital yesterday."</strong>
-                      </p>
-                      <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                        <strong>Explanation:</strong> The past simple of "go" is "went". When a finished time marker like <em>yesterday</em> is specified, always use Past Simple rather than Present Perfect.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Interactive bottom bar */}
-                <div className="pt-2 flex items-center justify-between border-t border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-2">
-                    <Mic className="w-4 h-4 text-oxford-600" />
-                    <span className="text-xs font-semibold text-slate-500">Voice Recognition Enabled</span>
-                  </div>
                   <Link
-                    href="/ai-coach"
-                    className="text-xs font-bold text-oxford-700 dark:text-oxford-400 hover:underline flex items-center gap-1"
+                    href="/learn"
+                    className="text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                   >
-                    <span>Try Full Session</span>
+                    <span>Open Full A0 Path</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -244,253 +469,211 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Why EnglishMiami? Complete Educational Engine */}
+      {/* =====================================================================
+          SEVEN-LEVEL CEFR 3D CURRICULUM EXPLORER (A0 TO C2)
+         ===================================================================== */}
       <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
-              Complete Educational Architecture
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+            <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+              Structured CEFR Roadmap
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+              Seven 3D Stages to Complete Mastery
             </h2>
-            <h3 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Built for Serious Academic & Career Fluency
-            </h3>
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400">
-              Not a gamified toy. EnglishMiami gives you structured linguistics, voice feedback, spaced repetition memory, and authentic English texts.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-600 dark:text-oxford-400 flex items-center justify-center mb-6 border border-oxford-200 dark:border-oxford-800">
-                <Globe className="w-6 h-6" />
-              </div>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Live Wikipedia ESL Reader</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Read real-world articles on science, history, space, and tech. Includes built-in Text-to-Speech audio reader, CEFR difficulty tags, and one-click vocabulary extraction.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-600 dark:text-oxford-400 flex items-center justify-center mb-6 border border-oxford-200 dark:border-oxford-800">
-                <Mic className="w-6 h-6" />
-              </div>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Speaking Lab & Speech AI</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Browser-based speech recognition analyzes your spoken English against phonetic transcripts, detecting missing syllables and score accuracy.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-600 dark:text-oxford-400 flex items-center justify-center mb-6 border border-oxford-200 dark:border-oxford-800">
-                <BookmarkCheck className="w-6 h-6" />
-              </div>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">SuperMemo SM-2 Vocabulary</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Spaced repetition memory algorithm schedules reviews precisely before you forget. Includes phonetic audio, parts of speech, and multilingual translations.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-600 dark:text-oxford-400 flex items-center justify-center mb-6 border border-oxford-200 dark:border-oxford-800">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Contextual Grammar Units</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Understand the "why" behind tenses, modal verbs of deduction, conditional structures, and negative inversions with interactive rule breakdowns.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-600 dark:text-oxford-400 flex items-center justify-center mb-6 border border-oxford-200 dark:border-oxford-800">
-                <Brain className="w-6 h-6" />
-              </div>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Miami AI Conversational Coach</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Simulate job interviews, airport departures, restaurant dining, and business negotiations with instant linguistic feedback and error corrections.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-600 dark:text-oxford-400 flex items-center justify-center mb-6 border border-oxford-200 dark:border-oxford-800">
-                <Award className="w-6 h-6" />
-              </div>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Verifiable CEFR Credentials</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Pass end-of-level evaluations to earn official EnglishMiami Certificates reviewed by our Academic Board. Instantly verifiable online for employers and universities.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Learning Journey: A0 to C2 */}
-      <section className="py-20 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
-              Clear Path to Fluency
-            </h2>
-            <h3 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              The Seven-Level CEFR Curriculum
-            </h3>
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400">
-              From absolute zero phonics to near-native literary dexterity.
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-medium">
+              Click any CEFR level below to inspect its units or jump straight into the interactive learning path.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
             {cefrLevels.map((lvl, idx) => (
-              <div
+              <Link
+                href="/learn"
                 key={lvl.code}
-                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-oxford-400 transition-colors flex flex-col justify-between"
+                className="card-3d card-3d-interactive p-5 flex flex-col justify-between group"
               >
                 <div>
-                  <span className="text-2xl font-black text-oxford-700 dark:text-oxford-400">
-                    {lvl.code}
-                  </span>
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1 mb-2">{lvl.title}</h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{lvl.desc}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div
+                      className={`w-12 h-12 rounded-2xl bg-gradient-to-b ${lvl.color} text-white font-black text-lg flex items-center justify-center ${lvl.shadow} group-hover:scale-105 transition-transform`}
+                    >
+                      {lvl.code}
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${lvl.badgeBg}`}>
+                      Stage {idx + 1}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white mt-2 mb-1.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {lvl.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                    {lvl.desc}
+                  </p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 text-[11px] font-bold text-oxford-600 dark:text-oxford-400">
-                  Stage {idx + 1} of 7
+
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-extrabold text-blue-700 dark:text-blue-400">
+                  <span>Start {lvl.code}</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
           <div className="mt-12 text-center">
             <Link
               href="/placement-test"
-              className="btn-primary text-sm font-semibold px-6 py-3 rounded-xl inline-flex items-center gap-2"
+              className="btn-3d-primary text-sm font-extrabold px-7 py-3.5 rounded-2xl inline-flex items-center gap-2"
             >
-              <Trophy className="w-4 h-4" />
-              <span>Take Free 5-Minute Placement Test</span>
+              <Trophy className="w-4 h-4 text-amber-300" />
+              <span>Not sure where to start? Take the 5-Minute Placement Test</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Skills Showcase */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
+      {/* =====================================================================
+          8 CORE COMPETENCIES: 3D BENTO GRID
+         ===================================================================== */}
+      <section className="py-20 bg-white dark:bg-slate-900 border-y-2 border-slate-200/80 dark:border-slate-800/80 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
-              Master All 8 Core Competencies
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+            <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+              All-In-One Language Ecosystem
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+              8 Interactive Labs Built for Real Fluency
             </h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-              Holistic Language Mastery
-            </h3>
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-medium">
+              Every tool you need to read, write, listen, and speak English with confidence.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {skillsList.map((skill) => {
               const Icon = skill.icon;
               return (
-                <div
+                <Link
+                  href={skill.href}
                   key={skill.title}
-                  className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-oxford-300 transition-colors"
+                  className="card-3d card-3d-interactive p-6 flex flex-col justify-between group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-oxford-50 dark:bg-oxford-950 text-oxford-700 dark:text-oxford-300 border border-oxford-200 dark:border-oxford-800 flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5" />
+                  <div>
+                    <div
+                      className={`w-12 h-12 rounded-2xl ${skill.accent} text-white flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}
+                    >
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="font-extrabold text-lg text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {skill.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                      {skill.desc}
+                    </p>
                   </div>
-                  <h4 className="font-bold text-base text-slate-900 dark:text-white mb-1.5">{skill.title}</h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{skill.desc}</p>
-                </div>
+
+                  <div className="mt-6 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 text-xs font-extrabold text-blue-700 dark:text-blue-400">
+                    <span>Launch Studio</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-20 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-colors">
+      {/* =====================================================================
+          PRICING SECTION: 3D TACTILE PLANS
+         ===================================================================== */}
+      <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
+            <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
               Transparent Tuition Plans
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+              Start Free. Upgrade Anytime.
             </h2>
-            <h3 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Invest in Your Fluency Today
-            </h3>
-            <p className="text-base text-slate-600 dark:text-slate-400">
-              Start 100% free. Upgrade anytime for unlimited AI coaching, speech practice, and official certification.
+            <p className="text-base text-slate-600 dark:text-slate-400 font-medium">
+              Complete A0 and A1 foundational tracks are 100% free forever.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free */}
-            <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+            {/* Free Starter */}
+            <div className="card-3d p-8 flex flex-col justify-between">
               <div>
-                <h4 className="font-bold text-xl text-slate-900 dark:text-white">Free Starter</h4>
-                <p className="text-xs text-slate-500 mt-1">Foundational lessons for absolute beginners.</p>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Free Starter</h3>
+                <p className="text-xs font-medium text-slate-500 mt-1">Foundational lessons for absolute beginners.</p>
                 <div className="my-6">
-                  <span className="text-4xl font-extrabold text-slate-900 dark:text-white">$0</span>
-                  <span className="text-xs text-slate-500 ml-1">/ forever</span>
+                  <span className="text-4xl font-black text-slate-900 dark:text-white">$0</span>
+                  <span className="text-xs font-bold text-slate-500 ml-1">/ forever</span>
                 </div>
-                <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> A0 & A1 Beginner Courses</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 10 AI Coach chats / day</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 5 min speaking practice / day</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Wikipedia ESL Reader access</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Basic vocabulary tests</li>
+                <ul className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Complete A0 & A1 3D Learn Path</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Full Theory, Phonics & Audio Cards</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> 10 AI Coach chats / day</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Wikipedia ESL Reader access</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Daily vocabulary flashcards</li>
                 </ul>
               </div>
               <Link
-                href="/signup"
-                className="mt-8 block text-center py-2.5 rounded-xl font-semibold text-xs btn-secondary"
+                href="/learn"
+                className="mt-8 block text-center py-3.5 rounded-2xl font-extrabold text-xs btn-3d-secondary uppercase tracking-wider"
               >
-                Get Started Free
+                Start Learning Free
               </Link>
             </div>
 
             {/* Weekly Pro */}
-            <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+            <div className="card-3d p-8 flex flex-col justify-between">
               <div>
-                <h4 className="font-bold text-xl text-slate-900 dark:text-white">Weekly Pro</h4>
-                <p className="text-xs text-slate-500 mt-1">Ideal for fast interview or exam preparation.</p>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Weekly Sprint</h3>
+                <p className="text-xs font-medium text-slate-500 mt-1">Ideal for fast job interview or exam prep.</p>
                 <div className="my-6">
-                  <span className="text-4xl font-extrabold text-slate-900 dark:text-white">$6.99</span>
-                  <span className="text-xs text-slate-500 ml-1">/ week</span>
+                  <span className="text-4xl font-black text-slate-900 dark:text-white">$6.99</span>
+                  <span className="text-xs font-bold text-slate-500 ml-1">/ week</span>
                 </div>
-                <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> All CEFR levels (A0 to C2)</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Unlimited AI Coach & Grammar Doctor</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> 60 min speaking practice daily</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Roleplay conversation scenarios</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Cancel anytime with 1 click</li>
+                <ul className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-blue-600 shrink-0" /> All CEFR levels (A0 to C2)</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-blue-600 shrink-0" /> Unlimited AI Coach & Grammar Doctor</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-blue-600 shrink-0" /> 60 min speaking practice daily</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-blue-600 shrink-0" /> Roleplay conversation scenarios</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-blue-600 shrink-0" /> Cancel anytime in 1 click</li>
                 </ul>
               </div>
               <Link
                 href="/pricing"
-                className="mt-8 block text-center py-2.5 rounded-xl font-semibold text-xs btn-secondary text-oxford-700 dark:text-oxford-300 border-oxford-300"
+                className="mt-8 block text-center py-3.5 rounded-2xl font-extrabold text-xs btn-3d-secondary uppercase tracking-wider"
               >
                 Choose Weekly Pro
               </Link>
             </div>
 
-            {/* Monthly Pro (Featured) */}
-            <div className="relative p-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-oxford-600 dark:border-oxford-500 shadow-md flex flex-col justify-between">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-oxford-700 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full">
-                Most Popular • Recommended
+            {/* Monthly Pro (Featured 3D Card) */}
+            <div className="relative p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-500 shadow-[0_8px_0_0_#059669,0_20px_35px_-10px_rgba(5,150,105,0.25)] flex flex-col justify-between -translate-y-1">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black uppercase tracking-wider px-4 py-1 rounded-full shadow-md whitespace-nowrap">
+                ★ Most Popular • Recommended
               </div>
               <div>
-                <h4 className="font-bold text-xl text-slate-900 dark:text-white">Monthly Pro</h4>
-                <p className="text-xs text-slate-500 mt-1">Full comprehensive fluency package.</p>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Monthly Pro</h3>
+                <p className="text-xs font-medium text-slate-500 mt-1">Full comprehensive fluency & certification.</p>
                 <div className="my-6">
-                  <span className="text-4xl font-extrabold text-oxford-700 dark:text-oxford-400">$19.99</span>
-                  <span className="text-xs text-slate-500 ml-1">/ month</span>
+                  <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400">$19.99</span>
+                  <span className="text-xs font-bold text-slate-500 ml-1">/ month</span>
                 </div>
-                <ul className="space-y-3 text-xs text-slate-700 dark:text-slate-200">
-                  <li className="flex items-center gap-2 font-semibold"><Check className="w-4 h-4 text-oxford-600" /> Unlimited Everything</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Unlimited AI Coach & Speech Labs</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Live Wikipedia ESL Reading Studio</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Cambridge/IELTS Writing Lab grading</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Official Verifiable CEFR Certificates</li>
+                <ul className="space-y-3 text-xs font-bold text-slate-700 dark:text-slate-200">
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Unlimited Access to All 7 CEFR Levels</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Unlimited AI Coach & Speech Labs</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Live Wikipedia ESL Reading Studio</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Cambridge/IELTS Writing Lab grading</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Official Verifiable CEFR Certificates</li>
                 </ul>
               </div>
               <Link
                 href="/pricing"
-                className="mt-8 btn-primary block text-center py-3 rounded-xl font-bold text-xs"
+                className="mt-8 btn-3d-emerald block text-center py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider"
               >
                 Start Monthly Pro
               </Link>
@@ -499,44 +682,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
+      {/* =====================================================================
+          LEARNER TESTIMONIALS
+         ===================================================================== */}
+      <section className="py-20 bg-white dark:bg-slate-900 border-t-2 border-slate-200/80 dark:border-slate-800/80 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
-              International Learner Stories
+          <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+            <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+              Global Student Community
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
+              Loved by Learners Across 40+ Countries
             </h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-              Authentic Reviews Worldwide
-            </h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {testimonials.map((t) => (
               <div
                 key={t.name}
-                className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between"
+                className="card-3d p-7 flex flex-col justify-between"
               >
                 <div className="space-y-4">
-                  <div className="flex items-center gap-1 text-amber-500">
+                  <div className="flex items-center gap-1 text-amber-400">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-500" />
+                      <Star key={i} className="w-4 h-4 fill-amber-400" />
                     ))}
                   </div>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                     "{t.quote}"
                   </p>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <h5 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <span>{t.flag}</span>
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="text-lg">{t.flag}</span>
                       <span>{t.name}</span>
-                    </h5>
-                    <p className="text-xs text-slate-500">{t.role} • Native {t.native}</p>
+                    </h4>
+                    <p className="text-xs font-semibold text-slate-500">{t.role} • Native {t.native}</p>
                   </div>
-                  <span className="text-xs font-semibold text-oxford-600 dark:text-oxford-400">{t.country}</span>
+                  <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {t.country}
+                  </span>
                 </div>
               </div>
             ))}
@@ -544,48 +731,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="py-20 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-colors">
+      {/* =====================================================================
+          FAQ SECTION
+         ===================================================================== */}
+      <section className="py-20 bg-slate-50 dark:bg-slate-950 border-t-2 border-slate-200/80 dark:border-slate-800/80 transition-colors">
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
-              Got Questions?
-            </h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+          <div className="text-center mb-14 space-y-3">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
               Frequently Asked Questions
-            </h3>
+            </h2>
           </div>
 
           <div className="space-y-4">
             {faqs.map((faq, i) => (
-              <div
-                key={i}
-                className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700"
-              >
-                <h4 className="font-bold text-base text-slate-900 dark:text-white mb-2">{faq.q}</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{faq.a}</p>
+              <div key={i} className="card-3d p-6">
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-white mb-2">
+                  {faq.q}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  {faq.a}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Final CTA Banner */}
-      <section className="py-20 bg-oxford-900 text-white relative overflow-hidden border-t border-oxford-950">
+      {/* =====================================================================
+          FINAL 3D CTA BANNER
+         ===================================================================== */}
+      <section className="py-20 bg-gradient-to-b from-blue-900 to-slate-950 text-white relative overflow-hidden border-t-2 border-blue-800">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 text-center space-y-6 relative z-10">
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Ready to Speak Fluent English with Confidence?
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
+            Ready to Start Your 3D English Journey?
           </h2>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-            Join thousands of ambitious international students and professionals on EnglishMiami.
+          <p className="text-lg text-blue-200 max-w-2xl mx-auto font-medium">
+            Jump straight into A0 Phonics & Greetings or test your level in 5 minutes.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/learn"
+              className="btn-3d-emerald text-sm font-black px-8 py-4 rounded-2xl inline-flex items-center gap-2 uppercase tracking-wider"
+            >
+              <Play className="w-4 h-4 fill-white" />
+              <span>Open 3D Learn Path Now</span>
+            </Link>
             <Link
               href="/signup"
-              className="bg-white text-oxford-900 hover:bg-slate-100 font-bold text-sm px-8 py-4 rounded-xl shadow-lg inline-flex items-center gap-2"
+              className="btn-3d-amber text-sm font-black px-8 py-4 rounded-2xl inline-flex items-center gap-2 uppercase tracking-wider"
             >
-              <span>Get Started Now (It's Free)</span>
-              <ArrowRight className="w-4 h-4 text-oxford-700" />
+              <span>Create Free Account</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
