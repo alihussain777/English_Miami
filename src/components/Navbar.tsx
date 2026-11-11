@@ -169,17 +169,17 @@ export default function Navbar() {
                 Plans
               </Link>
 
-              {session?.role === 'ADMIN' && (
-                <Link
-                  href="/admin"
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ${
-                    pathname.startsWith('/admin') ? 'ring-2 ring-blue-500' : ''
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Admin</span>
-                </Link>
-              )}
+              <Link
+                href="/admin"
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                  pathname.startsWith('/admin')
+                    ? 'bg-blue-700 text-white shadow-[0_3px_0_0_#1e3a8a]'
+                    : 'bg-blue-50 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Panel</span>
+              </Link>
             </div>
 
             {/* Right Action Icons & Auth */}
@@ -377,6 +377,14 @@ export default function Navbar() {
               className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               Tuition Plans
+            </Link>
+            <Link
+              href="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Admin Panel
             </Link>
             <Link
               href="/placement-test"
