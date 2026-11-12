@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import EnglishLearningGameArena from '@/components/EnglishLearningGameArena';
 import {
   Flame,
   Zap,
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [bonusGameXp, setBonusGameXp] = useState<number>(0);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -44,7 +46,7 @@ export default function DashboardPage() {
   }, []);
 
   const streak = userData?.streak?.currentStreak || 9;
-  const xp = userData?.profile?.xp || 890;
+  const xp = (userData?.profile?.xp || 890) + bonusGameXp;
   const level = userData?.profile?.currentLevel || 'A0';
   const completedLessons = userData?.stats?.completedLessons || 4;
   const speakingMins = userData?.profile?.speakingMinutes || 12;
@@ -212,6 +214,11 @@ export default function DashboardPage() {
               </span>
             </Link>
           </div>
+
+          {/* INTERACTIVE ENGLISH LEARNING GAME ARENA (4-IN-1 ARCADE) */}
+          <EnglishLearningGameArena
+            onXpEarned={(earned) => setBonusGameXp((prev) => prev + earned)}
+          />
 
           {/* Activity & Weekly Progress Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
