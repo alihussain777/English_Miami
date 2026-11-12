@@ -21,6 +21,7 @@ import {
   Flame,
   Zap,
   Star,
+  Gamepad2,
 } from 'lucide-react';
 import { UserSession } from '@/types';
 
@@ -39,6 +40,7 @@ export default function DashboardSidebar({
 
   const navLinks = [
     { label: 'Duolingo Learn Path', href: '/learn', icon: Star },
+    { label: 'English Games Arcade', href: '/games', icon: Gamepad2 },
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Curriculum (A0–C2)', href: '/courses', icon: GraduationCap },
     { label: 'Miami AI Coach', href: '/ai-coach', icon: Brain },

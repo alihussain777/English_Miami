@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import DashboardSidebar from '@/components/DashboardSidebar';
-import EnglishLearningGameArena from '@/components/EnglishLearningGameArena';
 import {
   Flame,
   Zap,
@@ -15,6 +14,7 @@ import {
   Award,
   Globe,
   Compass,
+  Gamepad2,
 } from 'lucide-react';
 import { UserSession } from '@/types';
 
@@ -127,8 +127,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* 3D Quick Action Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Quick Action Grid (5 Studio Boxes Including Playable Games Arcade) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {/* Duolingo Learning Path */}
             <Link
               href="/learn"
@@ -150,6 +150,31 @@ export default function DashboardPage() {
               </div>
               <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1 mt-5 group-hover:translate-x-1 transition-transform">
                 <span>Open Learn Path</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+
+            {/* English Games Arcade Box (Firing, Zombie Whack, Hungry Shark & Racing) */}
+            <Link
+              href="/games"
+              className="card-3d card-3d-interactive p-6 bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/35 dark:to-slate-900 border-2 border-amber-400 dark:border-amber-700 flex flex-col justify-between group"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center mb-4 shadow-[0_4px_0_0_#b45309] group-hover:scale-105 transition-transform">
+                  <Gamepad2 className="w-6 h-6" />
+                </div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">English Games</h3>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-600 text-white">
+                    6 GAMES
+                  </span>
+                </div>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Play Space Laser Shooter, Zombie Grammar Whack, Hungry Shark & Turbo Racer!
+                </p>
+              </div>
+              <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-5 group-hover:translate-x-1 transition-transform">
+                <span>Play Games Now</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </Link>
@@ -214,11 +239,6 @@ export default function DashboardPage() {
               </span>
             </Link>
           </div>
-
-          {/* INTERACTIVE ENGLISH LEARNING GAME ARENA (4-IN-1 ARCADE) */}
-          <EnglishLearningGameArena
-            onXpEarned={(earned) => setBonusGameXp((prev) => prev + earned)}
-          />
 
           {/* Activity & Weekly Progress Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

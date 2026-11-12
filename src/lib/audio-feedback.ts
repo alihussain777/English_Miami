@@ -101,3 +101,75 @@ export function playFanfareSound() {
     osc.stop(now + index * 0.1 + 0.45);
   });
 }
+
+export function playLaserSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(980, now);
+  osc.frequency.exponentialRampToValueAtTime(140, now + 0.16);
+  gain.gain.setValueAtTime(0.14, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.17);
+}
+
+export function playExplosionSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(160, now);
+  osc.frequency.exponentialRampToValueAtTime(35, now + 0.28);
+  gain.gain.setValueAtTime(0.2, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.31);
+}
+
+export function playChompSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  [320, 480].forEach((f, idx) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(f, now + idx * 0.07);
+    osc.frequency.exponentialRampToValueAtTime(180, now + idx * 0.07 + 0.08);
+    gain.gain.setValueAtTime(0.18, now + idx * 0.07);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.09);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now + idx * 0.07);
+    osc.stop(now + idx * 0.07 + 0.1);
+  });
+}
+
+export function playBonkSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(520, now + 0.09);
+  osc.frequency.exponentialRampToValueAtTime(220, now + 0.2);
+  gain.gain.setValueAtTime(0.22, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.23);
+}
+
