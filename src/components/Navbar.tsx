@@ -192,7 +192,7 @@ export default function Navbar() {
             <div className="hidden lg:flex items-center gap-1 p-1.5 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800">
               <Link
                 href="/learn"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
                   pathname.startsWith('/learn')
                     ? 'bg-emerald-600 text-white shadow-[0_3px_0_0_#047857]'
                     : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
@@ -203,20 +203,8 @@ export default function Navbar() {
               </Link>
 
               <Link
-                href="/dashboard"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold transition-all ${
-                  pathname.startsWith('/dashboard')
-                    ? 'bg-blue-700 text-white shadow-[0_3px_0_0_#1e3a8a]'
-                    : 'text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50'
-                }`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Dashboard</span>
-              </Link>
-
-              <Link
                 href="/courses"
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   pathname.startsWith('/courses')
                     ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
@@ -227,7 +215,7 @@ export default function Navbar() {
 
               <Link
                 href="/reading"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   pathname.startsWith('/reading')
                     ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
@@ -239,7 +227,7 @@ export default function Navbar() {
 
               <Link
                 href="/speaking"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   pathname.startsWith('/speaking')
                     ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
@@ -251,7 +239,7 @@ export default function Navbar() {
 
               <Link
                 href="/ai-coach"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   pathname.startsWith('/ai-coach')
                     ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
@@ -263,7 +251,7 @@ export default function Navbar() {
 
               <Link
                 href="/founder"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   pathname.startsWith('/founder')
                     ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
@@ -276,7 +264,7 @@ export default function Navbar() {
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
                     pathname.startsWith('/admin')
                       ? 'bg-blue-700 text-white shadow-[0_3px_0_0_#1e3a8a]'
                       : 'bg-blue-50 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900'
@@ -290,19 +278,6 @@ export default function Navbar() {
 
             {/* Right Action Icons & Auth */}
             <div className="flex items-center gap-2">
-              {/* Native Language Selector Pill (23 Languages -> English) */}
-              <button
-                type="button"
-                onClick={() => setLangModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-[0_3px_0_0_#a7f3d0] dark:shadow-[0_3px_0_0_#064e3b] hover:-translate-y-0.5 active:translate-y-0.5 transition-all text-xs font-extrabold cursor-pointer"
-                title="Select your native language to learn English from"
-              >
-                <span className="text-sm">{activeLangInfo.flag}</span>
-                <span className="hidden sm:inline">{activeLangInfo.nativeName}</span>
-                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">→ EN</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-              </button>
-
               {/* Notification Bell Dropdown */}
               <div className="relative">
                 <button
