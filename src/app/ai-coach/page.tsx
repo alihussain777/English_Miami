@@ -303,6 +303,8 @@ export default function LiveAITalkingAgentPage() {
 
   // Speech Recognition (Hands-Free Mic) & Audio Element Refs
   const [isListening, setIsListening] = useState<boolean>(false);
+  const [synthesizingVoice, setSynthesizingVoice] = useState<boolean>(false);
+  const [callSeconds, setCallSeconds] = useState<number>(0);
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -311,6 +313,8 @@ export default function LiveAITalkingAgentPage() {
   const htmlAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const lastAgentSpokenRef = useRef<string>('');
+  const audioCooldownUntilRef = useRef<number>(0);
   const sendSentenceRef = useRef<(text?: string) => Promise<void>>(async () => {});
   const startAutoMicRef = useRef<() => void>(() => {});
 
@@ -362,6 +366,18 @@ export default function LiveAITalkingAgentPage() {
     }, 3600);
     return () => clearInterval(blinkLoop);
   }, []);
+
+  // Live Call Timer when inside studio
+  useEffect(() => {
+    if (!setupCompleted) {
+      setCallSeconds(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCallSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [setupCompleted]);
 
   // Stop all audio & lip-sync cleanly
   const stopAllVoiceAndLipSync = useCallback(() => {
@@ -454,21 +470,25 @@ export default function LiveAITalkingAgentPage() {
       stopAllVoiceAndLipSync();
       const rateToUse = customRate || voiceSpeed;
       setCurrentlySpokenText(text);
+      lastAgentSpokenRef.current = text.toLowerCase();
+      setSynthesizingVoice(true);
 
       const onSpeechComplete = () => {
+        setSynthesizingVoice(false);
         stopAllVoiceAndLipSync();
-        // Hands-free magic: automatically turn on the user's mic right after Sophia finishes!
+        audioCooldownUntilRef.current = Date.now() + 850;
+        // Hands-free magic: wait 900ms for speaker echo to clear before opening user's mic!
         if (triggerMicAfter && handsFreeRef.current) {
           setTimeout(() => {
             if (!isSpeakingRef.current && handsFreeRef.current) {
               startAutoMicRef.current();
             }
-          }, 350);
+          }, 900);
         }
       };
 
       try {
-        // Call our Server-Side Gemini / Cloud Neural TTS endpoint (/api/ai/tts)
+        // Call our Server-Side Gemini Studio Voice TTS endpoint (/api/ai/tts)
         const res = await fetch('/api/ai/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -478,6 +498,8 @@ export default function LiveAITalkingAgentPage() {
             apiKeyOverride: geminiApiKeyInput.trim() || undefined,
           }),
         });
+
+        setSynthesizingVoice(false);
 
         if (res.ok) {
           const engineHeader = res.headers.get('X-Voice-Engine') || '';
@@ -493,18 +515,10 @@ export default function LiveAITalkingAgentPage() {
           audio.playbackRate = Math.max(0.65, Math.min(1.35, rateToUse));
           htmlAudioRef.current = audio;
 
-          // Connect Web Audio API AnalyserNode for real-time frequency-driven lip movements
+          // Start cadence lip-sync immediately; upgrade to real AudioContext spectrum if unlocked
           startCadenceLipSync(text);
           try {
-            const AudioContextClass =
-              window.AudioContext || (window as any).webkitAudioContext;
-            if (AudioContextClass) {
-              if (!audioCtxRef.current) {
-                audioCtxRef.current = new AudioContextClass();
-              }
-              if (audioCtxRef.current.state === 'suspended') {
-                await audioCtxRef.current.resume();
-              }
+            if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
               const source = audioCtxRef.current.createMediaElementSource(audio);
               const analyser = audioCtxRef.current.createAnalyser();
               analyser.fftSize = 64;
@@ -515,27 +529,18 @@ export default function LiveAITalkingAgentPage() {
               const updateRealVisemeFromAudio = () => {
                 if (!isSpeakingRef.current) return;
                 analyser.getByteFrequencyData(freqData);
-                // Compute low/mid vocal energy
                 let sum = 0;
                 for (let i = 1; i < 16; i++) {
                   sum += freqData[i];
                 }
                 const avg = sum / 15;
 
-                // Map real vocal energy to accurate mouth visemes
-                if (avg < 18) {
-                  setViseme('closed');
-                } else if (avg < 55) {
-                  setViseme('teeth_fv');
-                } else if (avg < 95) {
-                  setViseme('slightly_open');
-                } else if (avg < 145) {
-                  setViseme('round_oh');
-                } else {
-                  setViseme('wide_ah');
-                }
+                if (avg < 18) setViseme('closed');
+                else if (avg < 55) setViseme('teeth_fv');
+                else if (avg < 95) setViseme('slightly_open');
+                else if (avg < 145) setViseme('round_oh');
+                else setViseme('wide_ah');
 
-                // Update 16 equalizer bars from real audio spectrum
                 const bars: number[] = [];
                 for (let i = 0; i < 16; i++) {
                   bars.push(Math.max(15, Math.min(98, Math.round((freqData[i] / 255) * 100))));
@@ -552,7 +557,7 @@ export default function LiveAITalkingAgentPage() {
               animFrameRef.current = requestAnimationFrame(updateRealVisemeFromAudio);
             }
           } catch {
-            // Cadence lip-sync timer remains active if AudioContext fails
+            // Cadence lip-sync timer remains active
           }
 
           audio.onended = () => {
@@ -568,6 +573,7 @@ export default function LiveAITalkingAgentPage() {
           return;
         }
       } catch (err) {
+        setSynthesizingVoice(false);
         console.warn('Server TTS unavailable, trying direct browser neural voice:', err);
       }
 
@@ -701,6 +707,20 @@ export default function LiveAITalkingAgentPage() {
         if (submitted) return;
         const cleaned = textToSend.trim();
         if (cleaned.length < 2) return;
+
+        // Echo-shield: if SpeechRecognition accidentally picked up Sophia's own speaker audio, ignore and keep listening
+        const spokenWords = cleaned.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const agentText = (lastAgentSpokenRef.current || '').replace(/[^a-z0-9\s]/g, '');
+        if (spokenWords.length >= 3 && agentText) {
+          const matchedWords = spokenWords.filter((w) => w.length > 2 && agentText.includes(w));
+          if (matchedWords.length / spokenWords.length >= 0.72 && agentText.includes(spokenWords.slice(0, 3).join(' '))) {
+            accumulatedTranscript = '';
+            setInterimTranscript('');
+            setUserInput('');
+            return;
+          }
+        }
+
         submitted = true;
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         try {
@@ -787,6 +807,18 @@ export default function LiveAITalkingAgentPage() {
     chosenMode = sessionMode,
     chosenScenario = roleplayScenario
   ) => {
+    // Unlock Web AudioContext cleanly inside user gesture
+    try {
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        if (!audioCtxRef.current) audioCtxRef.current = new AudioContextClass();
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+      }
+    } catch {}
+
     setSetupCompleted(true);
     setLoading(true);
     stopAllVoiceAndLipSync();
@@ -853,6 +885,11 @@ export default function LiveAITalkingAgentPage() {
       setLoading(true);
 
       try {
+        const historyPayload = turns.slice(-6).map((t) => ({
+          user: t.userSpokenText || '',
+          agent: t.spokenTeacherReply || '',
+        }));
+
         const res = await fetch('/api/ai/live-agent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -862,6 +899,7 @@ export default function LiveAITalkingAgentPage() {
             level: learnerLevel,
             sessionMode,
             roleplayScenario,
+            conversationHistory: historyPayload,
             turnCount: turns.length,
             apiKeyOverride: geminiApiKeyInput.trim() || undefined,
           }),
@@ -1536,19 +1574,25 @@ export default function LiveAITalkingAgentPage() {
                     <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-white/15">
                       <span
                         className={`w-2.5 h-2.5 rounded-full ${
-                          isSpeaking
-                            ? 'bg-emerald-400 animate-ping'
-                            : isListening
-                              ? 'bg-rose-500 animate-ping'
-                              : 'bg-emerald-400'
+                          synthesizingVoice || loading
+                            ? 'bg-amber-400 animate-pulse'
+                            : isSpeaking
+                              ? 'bg-emerald-400 animate-ping'
+                              : isListening
+                                ? 'bg-rose-500 animate-ping'
+                                : 'bg-emerald-400'
                         }`}
                       />
                       <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-                        {isSpeaking
-                          ? `🗣️ Speaking (${geminiVoice} Voice)`
-                          : isListening
-                            ? '🎙️ Hands-Free Listening — Speak Now!'
-                            : '🟢 Live Call Connected'}
+                        {loading
+                          ? '🧠 Thinking...'
+                          : synthesizingVoice
+                            ? `🎙️ Loading Gemini Voice (${geminiVoice})...`
+                            : isSpeaking
+                              ? `🗣️ Speaking (${geminiVoice})`
+                              : isListening
+                                ? '🎙️ Listening — Speak Now!'
+                                : `🟢 Call Live • ${String(Math.floor(callSeconds / 60)).padStart(2, '0')}:${String(callSeconds % 60).padStart(2, '0')}`}
                       </span>
                     </div>
 

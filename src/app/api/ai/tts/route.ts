@@ -22,8 +22,8 @@ function pcmToWavBuffer(
   header.writeUInt32LE(36 + dataSize, 4);
   header.write('WAVE', 8);
   header.write('fmt ', 12);
-  header.writeUInt32LE(16, 16); // Subchunk1Size (16 for PCM)
-  header.writeUInt16LE(1, 20); // AudioFormat (1 = PCM)
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
   header.writeUInt16LE(numChannels, 22);
   header.writeUInt32LE(sampleRate, 24);
   header.writeUInt32LE(byteRate, 28);
@@ -35,9 +35,6 @@ function pcmToWavBuffer(
   return Buffer.concat([header, pcmBuffer]);
 }
 
-/**
- * Splits text into natural sentence chunks <= 190 chars for cloud neural TTS fallback.
- */
 function splitTextIntoChunks(text: string, maxLen = 185): string[] {
   const cleaned = text.replace(/\s+/g, ' ').trim();
   if (!cleaned) return [];
@@ -56,7 +53,6 @@ function splitTextIntoChunks(text: string, maxLen = 185): string[] {
       if (trimmed.length <= maxLen) {
         current = trimmed;
       } else {
-        // Hard split by words if a single sentence exceeds maxLen
         const words = trimmed.split(' ');
         let sub = '';
         for (const w of words) {
@@ -79,7 +75,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawText = String(body.text || '').trim();
-    const voiceName = String(body.voiceName || 'Aoede').trim(); // 'Aoede' | 'Kore' | 'Puck' | 'Charon' | 'Fenrir'
+    const voiceName = String(body.voiceName || 'Aoede').trim();
     const apiKeyOverride = String(body.apiKeyOverride || '').trim();
 
     if (!rawText) {
@@ -90,22 +86,33 @@ export async function POST(req: NextRequest) {
       .replace(/[*#_~`]/g, '')
       .replace(/\s+/g, ' ')
       .trim()
-      .slice(0, 700);
+      .slice(0, 750);
 
     const config: any = readSiteConfig();
-    const activeApiKey =
-      apiKeyOverride || config.geminiApiKey || process.env.GEMINI_API_KEY || '';
+    const activeApiKey = (
+      apiKeyOverride ||
+      config.geminiApiKey ||
+      process.env.GEMINI_API_KEY ||
+      ''
+    ).trim();
+
+    const safeVoice = ['Aoede', 'Kore', 'Puck', 'Charon', 'Fenrir'].includes(
+      voiceName
+    )
+      ? voiceName
+      : 'Aoede';
 
     // =========================================================================
-    // 1. PRIORITY 1: GEMINI NATIVE AUDIO / TTS (Aoede, Kore, Puck, Charon, Fenrir)
+    // 1. PRIORITY 1: GEMINI NATIVE STUDIO VOICE TTS (Aoede, Kore, Puck, Charon)
     // =========================================================================
     if (activeApiKey) {
-      const geminiModels = [
+      const geminiTtsModels = [
+        'gemini-3.8-flash-tts',
+        'gemini-3.8-flash-lite-tts',
         'gemini-2.5-flash-preview-tts',
-        'gemini-2.0-flash-exp',
       ];
 
-      for (const modelName of geminiModels) {
+      for (const modelName of geminiTtsModels) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(
             activeApiKey
@@ -116,10 +123,7 @@ export async function POST(req: NextRequest) {
               {
                 parts: [
                   {
-                    text:
-                      modelName.includes('tts')
-                        ? `Speak warmly and naturally like an encouraging English teacher: ${cleanText}`
-                        : `Read the following sentences aloud warmly and clearly without adding any extra words: "${cleanText}"`,
+                    text: `Speak warmly, expressively, and naturally like a real friendly human English teacher on a voice call (say only the words below): ${cleanText}`,
                   },
                 ],
               },
@@ -129,27 +133,19 @@ export async function POST(req: NextRequest) {
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
-                    voiceName: ['Aoede', 'Kore', 'Puck', 'Charon', 'Fenrir'].includes(
-                      voiceName
-                    )
-                      ? voiceName
-                      : 'Aoede',
+                    voiceName: safeVoice,
                   },
                 },
               },
             },
           };
 
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 9000);
-
           const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(geminiPayload),
-            signal: controller.signal,
+            signal: AbortSignal.timeout(10000),
           });
-          clearTimeout(timeout);
 
           if (res.ok) {
             const data = await res.json();
@@ -164,38 +160,41 @@ export async function POST(req: NextRequest) {
               const mimeType = String(audioPart.inlineData.mimeType || 'audio/pcm');
               const rawBytes = Buffer.from(audioPart.inlineData.data, 'base64');
 
-              if (mimeType.includes('wav')) {
+              if (mimeType.includes('wav') || mimeType.includes('mp3') || mimeType.includes('mpeg')) {
                 return new NextResponse(new Uint8Array(rawBytes), {
                   status: 200,
                   headers: {
-                    'Content-Type': 'audio/wav',
-                    'X-Voice-Engine': `gemini-${modelName}-${voiceName}`,
+                    'Content-Type': mimeType.includes('wav') ? 'audio/wav' : 'audio/mpeg',
+                    'X-Voice-Engine': `gemini-${modelName}-${safeVoice}`,
                     'Cache-Control': 'no-store',
                   },
                 });
               }
 
-              // Convert 24kHz 16-bit PCM to WAV
-              const wavBuffer = pcmToWavBuffer(rawBytes, 24000, 1, 16);
+              const rateMatch = mimeType.match(/rate=(\d+)/);
+              const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
+              const wavBuffer = pcmToWavBuffer(rawBytes, sampleRate, 1, 16);
               return new NextResponse(new Uint8Array(wavBuffer), {
                 status: 200,
                 headers: {
                   'Content-Type': 'audio/wav',
-                  'X-Voice-Engine': `gemini-${modelName}-${voiceName}`,
+                  'X-Voice-Engine': `gemini-${modelName}-${safeVoice}`,
                   'Cache-Control': 'no-store',
                 },
               });
             }
+          } else {
+            const errTxt = await res.text().catch(() => '');
+            console.warn(`Gemini TTS (${modelName}) HTTP ${res.status}:`, errTxt.slice(0, 180));
           }
         } catch (err) {
-          console.warn(`Gemini TTS (${modelName}) fallback:`, err);
+          console.warn(`Gemini TTS (${modelName}) error:`, err);
         }
       }
     }
 
     // =========================================================================
-    // 2. PRIORITY 2: GOOGLE CLOUD / TRANSLATE NEURAL VOICE STREAM (MP3)
-    //    Produces natural Google US English Female voice (same family as Gemini/Assistant)
+    // 2. PRIORITY 2: GOOGLE NEURAL VOICE STREAM (MP3 fallback if Gemini key missing)
     // =========================================================================
     try {
       const chunks = splitTextIntoChunks(cleanText, 180);
@@ -210,6 +209,7 @@ export async function POST(req: NextRequest) {
             'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
           },
+          signal: AbortSignal.timeout(5000),
         });
         if (res.ok) {
           const arrBuf = await res.arrayBuffer();
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (err) {
-      console.warn('Google Neural TTS stream fallback error:', err);
+      console.warn('Google Neural TTS fallback error:', err);
     }
 
     return NextResponse.json(
