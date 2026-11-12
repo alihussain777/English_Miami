@@ -21,9 +21,12 @@ import {
   Play,
   Award,
   MessageSquare,
-  Zap,
   ChevronRight,
   Sliders,
+  PhoneCall,
+  PhoneOff,
+  Briefcase,
+  Users,
 } from 'lucide-react';
 import {
   DUOLINGO_BASE_LANGUAGES,
@@ -34,7 +37,22 @@ import { playSuccessSound } from '@/lib/audio-feedback';
 import { UserSession } from '@/types';
 
 type LearnerLevel = 'basic' | 'mid' | 'advanced';
-type MouthViseme = 'closed' | 'slightly_open' | 'wide_ah' | 'round_oh' | 'teeth_fv' | 'smile';
+type SessionMode = 'teaching' | 'roleplay' | 'guided_lesson';
+type RoleplayScenarioId =
+  | 'job_interview'
+  | 'cafe_order'
+  | 'airport_immigration'
+  | 'doctor_visit'
+  | 'hotel_checkin'
+  | 'business_meeting';
+type GeminiVoiceName = 'Aoede' | 'Kore' | 'Puck' | 'Charon';
+type MouthViseme =
+  | 'closed'
+  | 'slightly_open'
+  | 'wide_ah'
+  | 'round_oh'
+  | 'teeth_fv'
+  | 'smile';
 
 interface VocabularyCard {
   word: string;
@@ -76,7 +94,7 @@ const FEATURED_NATIVE_LANGUAGES = [
   'es', // Spanish 🇪🇸
   'bn', // Bengali 🇧🇩
   'tr', // Turkish 🇹🇷
-  'pa', // Punjabi / Pashto fallback
+  'pa', // Punjabi
   'pt', // Portuguese 🇧🇷
   'fr', // French 🇫🇷
   'de', // German 🇩🇪
@@ -91,7 +109,6 @@ const LEVEL_OPTIONS: {
   cefr: string;
   desc: string;
   urduHint: string;
-  color: string;
 }[] = [
   {
     id: 'basic',
@@ -100,7 +117,6 @@ const LEVEL_OPTIONS: {
     cefr: 'CEFR A0 – A1',
     desc: 'Learn daily sentences, simple grammar rules, and step-by-step speaking with full native language guidance.',
     urduHint: 'ابتدائی لیول: آسان جملے اور آپ کی زبان میں مکمل رہنمائی',
-    color: 'from-emerald-600 to-teal-700',
   },
   {
     id: 'mid',
@@ -109,7 +125,6 @@ const LEVEL_OPTIONS: {
     cefr: 'CEFR A2 – B1',
     desc: 'Master past/present/future tenses, fix common speaking mistakes, and build confident real-life fluency.',
     urduHint: 'درمیانہ لیول: گرامر کی غلطیاں درست کریں اور روانی سے بولیں',
-    color: 'from-blue-600 to-indigo-700',
   },
   {
     id: 'advanced',
@@ -118,40 +133,125 @@ const LEVEL_OPTIONS: {
     cefr: 'CEFR B2 – C2',
     desc: 'Executive communication, job interview mastery, native idioms, and high-level sentence refinement.',
     urduHint: 'ایڈوانسڈ لیول: پروفیشنل انگلش، انٹرویو اور اعلیٰ الفاظ',
-    color: 'from-purple-600 to-indigo-800',
   },
 ];
 
-const QUICK_TEST_SENTENCES: { label: string; text: string; tag: string }[] = [
+const SESSION_MODES: {
+  id: SessionMode;
+  badge: string;
+  title: string;
+  desc: string;
+  urduTitle: string;
+}[] = [
+  {
+    id: 'teaching',
+    badge: '👩‍🏫 Live Teacher Mode',
+    title: 'Bilingual Teacher & Mistake Fixer',
+    desc: 'Sophia talks with you like a real teacher, tests your English, and corrects every mistake in detailed cards.',
+    urduTitle: 'لائیو ٹیچر: غلط اور صحیح فقرات کی تفصیلی اصلاح',
+  },
+  {
+    id: 'roleplay',
+    badge: '🎭 Live Roleplay Mode',
+    title: 'Real-Life Roleplay Scenarios',
+    desc: 'Practice Job Interviews, Airport Immigration, Cafe Ordering, Doctor Visits & Business Meetings live!',
+    urduTitle: 'لائیو رول پلے: جاب انٹرویو، ایئرپورٹ، کیفے اور ڈاکٹر کلینک',
+  },
+  {
+    id: 'guided_lesson',
+    badge: '🎓 Guided Speaking Class',
+    title: 'Step-by-Step English Speaking Drill',
+    desc: 'Follow a structured speaking lesson where Sophia teaches a daily sentence pattern and drills your pronunciation.',
+    urduTitle: 'گائیڈڈ کلاس: قدم بہ قدم انگلش بولنے کی مشق',
+  },
+];
+
+const ROLEPLAY_OPTIONS: {
+  id: RoleplayScenarioId;
+  emoji: string;
+  title: string;
+  roleDesc: string;
+  urduLabel: string;
+}[] = [
+  {
+    id: 'job_interview',
+    emoji: '💼',
+    title: 'Job Interview',
+    roleDesc: 'Sophia = HR Hiring Manager',
+    urduLabel: 'جاب انٹرویو کی تیاری',
+  },
+  {
+    id: 'cafe_order',
+    emoji: '☕',
+    title: 'Miami Cafe & Restaurant',
+    roleDesc: 'Sophia = Friendly Barista',
+    urduLabel: 'کیفے اور ریسٹورنٹ آرڈر',
+  },
+  {
+    id: 'airport_immigration',
+    emoji: '✈️',
+    title: 'Airport & Immigration',
+    roleDesc: 'Sophia = US Customs Officer',
+    urduLabel: 'ایئرپورٹ اور امیگریشن',
+  },
+  {
+    id: 'doctor_visit',
+    emoji: '🏥',
+    title: 'Doctor Appointment',
+    roleDesc: 'Sophia = Clinic Doctor',
+    urduLabel: 'ڈاکٹر کلینک چیک اپ',
+  },
+  {
+    id: 'hotel_checkin',
+    emoji: '🏨',
+    title: '5-Star Hotel Check-In',
+    roleDesc: 'Sophia = Front Desk Manager',
+    urduLabel: 'ہوٹل ریسیپشن اور بکنگ',
+  },
+  {
+    id: 'business_meeting',
+    emoji: '🤝',
+    title: 'Executive Client Meeting',
+    roleDesc: 'Sophia = US Tech Partner VP',
+    urduLabel: 'بزنس اور کلائنٹ میٹنگ',
+  },
+];
+
+const GEMINI_VOICE_OPTIONS: {
+  id: GeminiVoiceName;
+  label: string;
+  desc: string;
+}[] = [
+  { id: 'Aoede', label: 'Aoede (Warm Teacher)', desc: 'Natural & Encouraging' },
+  { id: 'Kore', label: 'Kore (Clear Coach)', desc: 'Crisp & Articulate' },
+  { id: 'Puck', label: 'Puck (Friendly Partner)', desc: 'Energetic Roleplay' },
+  { id: 'Charon', label: 'Charon (Executive)', desc: 'Deep & Professional' },
+];
+
+const QUICK_TEST_SENTENCES: { label: string; text: string }[] = [
   {
     label: '❌ "I am agree with your point."',
     text: 'I am agree with your point.',
-    tag: 'Test Mistake #1',
   },
   {
     label: '❌ "Yesterday I goed to market with my brother."',
     text: 'Yesterday I goed to market with my brother.',
-    tag: 'Test Mistake #2',
   },
   {
     label: '❌ "I have 22 years old and I am student."',
     text: 'I have 22 years old and I am student.',
-    tag: 'Test Mistake #3',
   },
   {
     label: '❌ "She don\'t know nothing about this problem."',
     text: "She don't know nothing about this problem.",
-    tag: 'Test Mistake #4',
   },
   {
     label: '❌ "I am learning English since two years."',
     text: 'I am learning English since two years.',
-    tag: 'Test Mistake #5',
   },
   {
-    label: '✅ "I would like to improve my spoken English fluency."',
-    text: 'I would like to improve my spoken English fluency.',
-    tag: 'Correct Sentence',
+    label: '✅ "I have two years of experience and I love working with teams."',
+    text: 'I have two years of experience and I love working with teams.',
   },
 ];
 
@@ -162,13 +262,27 @@ export default function LiveAITalkingAgentPage() {
   const [setupCompleted, setSetupCompleted] = useState<boolean>(false);
   const [nativeLanguage, setNativeLanguage] = useState<string>('ur');
   const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>('basic');
+  const [sessionMode, setSessionMode] = useState<SessionMode>('teaching');
+  const [roleplayScenario, setRoleplayScenario] =
+    useState<RoleplayScenarioId>('job_interview');
+  const [geminiVoice, setGeminiVoice] = useState<GeminiVoiceName>('Aoede');
   const [showAllLanguages, setShowAllLanguages] = useState<boolean>(false);
+
+  // Hands-Free Continuous Auto-Mic (So user NEVER has to click mic repeatedly!)
+  const [handsFreeAutoMic, setHandsFreeAutoMic] = useState<boolean>(true);
+  const handsFreeRef = useRef<boolean>(true);
+  useEffect(() => {
+    handsFreeRef.current = handsFreeAutoMic;
+  }, [handsFreeAutoMic]);
 
   // Gemini Live API Key Management
   const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(false);
   const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>('');
   const [hasServerKey, setHasServerKey] = useState<boolean>(false);
   const [apiKeySavedMsg, setApiKeySavedMsg] = useState<string | null>(null);
+  const [activeVoiceEngineLabel, setActiveVoiceEngineLabel] = useState<string>(
+    'Gemini Aoede Neural Voice'
+  );
 
   // Live Agent State
   const [turns, setTurns] = useState<LiveAgentTurn[]>([]);
@@ -177,21 +291,28 @@ export default function LiveAITalkingAgentPage() {
 
   // Realistic Avatar Lip-Sync & Voice State
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const isSpeakingRef = useRef<boolean>(false);
   const [viseme, setViseme] = useState<MouthViseme>('smile');
   const [isBlinking, setIsBlinking] = useState<boolean>(false);
-  const [voiceSpeed, setVoiceSpeed] = useState<number>(0.95);
+  const [voiceSpeed, setVoiceSpeed] = useState<number>(1.0);
   const [voiceMuted, setVoiceMuted] = useState<boolean>(false);
   const [currentlySpokenText, setCurrentlySpokenText] = useState<string>('');
   const [audioBars, setAudioBars] = useState<number[]>([
     18, 32, 24, 45, 30, 52, 28, 38, 22, 48, 34, 26, 42, 20, 36, 24,
   ]);
 
-  // Speech Recognition (Mic) State
+  // Speech Recognition (Hands-Free Mic) & Audio Element Refs
   const [isListening, setIsListening] = useState<boolean>(false);
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const visemeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const htmlAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+  const sendSentenceRef = useRef<(text?: string) => Promise<void>>(async () => {});
+  const startAutoMicRef = useRef<() => void>(() => {});
 
   // Load user session & API key status
   useEffect(() => {
@@ -202,8 +323,12 @@ export default function LiveAITalkingAgentPage() {
     if (savedKey) setGeminiApiKeyInput(savedKey);
 
     Promise.all([
-      fetch('/api/auth/me').then((r) => r.json()).catch(() => ({})),
-      fetch('/api/ai/live-agent').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/auth/me')
+        .then((r) => r.json())
+        .catch(() => ({})),
+      fetch('/api/ai/live-agent')
+        .then((r) => r.json())
+        .catch(() => ({})),
     ]).then(([authData, agentInfo]) => {
       if (agentInfo?.hasApiKey) {
         setHasServerKey(true);
@@ -222,7 +347,6 @@ export default function LiveAITalkingAgentPage() {
           name: authData.user.name,
           role: authData.user.role,
           currentLevel: lvl,
-          nativeLanguage: userLang,
           plan: authData.user.subscription?.plan || 'FREE',
           onboardingCompleted: true,
         });
@@ -239,9 +363,34 @@ export default function LiveAITalkingAgentPage() {
     return () => clearInterval(blinkLoop);
   }, []);
 
-  // Realistic 60fps Lip-Sync Viseme Engine while speaking
-  const startLipSyncAnimation = useCallback((textToAnalyze: string) => {
+  // Stop all audio & lip-sync cleanly
+  const stopAllVoiceAndLipSync = useCallback(() => {
+    if (visemeTimerRef.current) {
+      clearInterval(visemeTimerRef.current);
+      visemeTimerRef.current = null;
+    }
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (htmlAudioRef.current) {
+      try {
+        htmlAudioRef.current.pause();
+        htmlAudioRef.current.src = '';
+      } catch {}
+      htmlAudioRef.current = null;
+    }
+    stopRealisticSpeech();
+    isSpeakingRef.current = false;
+    setIsSpeaking(false);
+    setViseme('smile');
+    setAudioBars([14, 18, 12, 22, 16, 14, 20, 15, 12, 18, 14, 16, 20, 14, 16, 12]);
+  }, []);
+
+  // Start fallback cadence lip-sync
+  const startCadenceLipSync = useCallback((textToAnalyze: string) => {
     if (visemeTimerRef.current) clearInterval(visemeTimerRef.current);
+    isSpeakingRef.current = true;
     setIsSpeaking(true);
     setCurrentlySpokenText(textToAnalyze);
 
@@ -263,136 +412,384 @@ export default function LiveAITalkingAgentPage() {
       step = (step + 1) % sequence.length;
       setViseme(sequence[step]);
       setAudioBars((prev) =>
-        prev.map(() => Math.floor(20 + Math.random() * 75))
+        prev.map(() => Math.floor(22 + Math.random() * 74))
       );
-    }, 95);
-  }, []);
-
-  const stopLipSyncAnimation = useCallback(() => {
-    if (visemeTimerRef.current) {
-      clearInterval(visemeTimerRef.current);
-      visemeTimerRef.current = null;
-    }
-    setIsSpeaking(false);
-    setViseme('smile');
-    setAudioBars([14, 18, 12, 22, 16, 14, 20, 15, 12, 18, 14, 16, 20, 14, 16, 12]);
+    }, 90);
   }, []);
 
   useEffect(() => {
     return () => {
-      if (visemeTimerRef.current) clearInterval(visemeTimerRef.current);
-      stopRealisticSpeech();
+      stopAllVoiceAndLipSync();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     };
-  }, []);
+  }, [stopAllVoiceAndLipSync]);
 
-  // Speak text with synchronized avatar lip movement
+  // =========================================================================
+  // REAL GEMINI NEURAL VOICE + CLOUD NEURAL TTS WITH REAL AUDIO LIP-SYNC
+  // Automatically triggers Hands-Free Mic as soon as Sophia finishes speaking!
+  // =========================================================================
   const speakWithAvatarLipSync = useCallback(
-    (text: string, customRate?: number) => {
-      if (!text || voiceMuted) return;
-      const rateToUse = customRate || voiceSpeed;
+    async (text: string, customRate?: number, triggerMicAfter = true) => {
+      if (!text || voiceMuted) {
+        if (triggerMicAfter && handsFreeRef.current) {
+          setTimeout(() => startAutoMicRef.current(), 300);
+        }
+        return;
+      }
 
-      // Estimate speaking duration from word count for accurate fallback timer
+      // Pause microphone while Sophia speaks so she never hears her own echo
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.stop();
+        } catch {}
+        setIsListening(false);
+      }
+
+      stopAllVoiceAndLipSync();
+      const rateToUse = customRate || voiceSpeed;
+      setCurrentlySpokenText(text);
+
+      const onSpeechComplete = () => {
+        stopAllVoiceAndLipSync();
+        // Hands-free magic: automatically turn on the user's mic right after Sophia finishes!
+        if (triggerMicAfter && handsFreeRef.current) {
+          setTimeout(() => {
+            if (!isSpeakingRef.current && handsFreeRef.current) {
+              startAutoMicRef.current();
+            }
+          }, 350);
+        }
+      };
+
+      try {
+        // Call our Server-Side Gemini / Cloud Neural TTS endpoint (/api/ai/tts)
+        const res = await fetch('/api/ai/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text,
+            voiceName: geminiVoice,
+            apiKeyOverride: geminiApiKeyInput.trim() || undefined,
+          }),
+        });
+
+        if (res.ok) {
+          const engineHeader = res.headers.get('X-Voice-Engine') || '';
+          if (engineHeader.startsWith('gemini-')) {
+            setActiveVoiceEngineLabel(`Gemini Live Voice (${geminiVoice})`);
+          } else {
+            setActiveVoiceEngineLabel(`Google Neural HD Voice (${geminiVoice})`);
+          }
+
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          const audio = new Audio(audioUrl);
+          audio.playbackRate = Math.max(0.65, Math.min(1.35, rateToUse));
+          htmlAudioRef.current = audio;
+
+          // Connect Web Audio API AnalyserNode for real-time frequency-driven lip movements
+          startCadenceLipSync(text);
+          try {
+            const AudioContextClass =
+              window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContextClass) {
+              if (!audioCtxRef.current) {
+                audioCtxRef.current = new AudioContextClass();
+              }
+              if (audioCtxRef.current.state === 'suspended') {
+                await audioCtxRef.current.resume();
+              }
+              const source = audioCtxRef.current.createMediaElementSource(audio);
+              const analyser = audioCtxRef.current.createAnalyser();
+              analyser.fftSize = 64;
+              source.connect(analyser);
+              analyser.connect(audioCtxRef.current.destination);
+
+              const freqData = new Uint8Array(analyser.frequencyBinCount);
+              const updateRealVisemeFromAudio = () => {
+                if (!isSpeakingRef.current) return;
+                analyser.getByteFrequencyData(freqData);
+                // Compute low/mid vocal energy
+                let sum = 0;
+                for (let i = 1; i < 16; i++) {
+                  sum += freqData[i];
+                }
+                const avg = sum / 15;
+
+                // Map real vocal energy to accurate mouth visemes
+                if (avg < 18) {
+                  setViseme('closed');
+                } else if (avg < 55) {
+                  setViseme('teeth_fv');
+                } else if (avg < 95) {
+                  setViseme('slightly_open');
+                } else if (avg < 145) {
+                  setViseme('round_oh');
+                } else {
+                  setViseme('wide_ah');
+                }
+
+                // Update 16 equalizer bars from real audio spectrum
+                const bars: number[] = [];
+                for (let i = 0; i < 16; i++) {
+                  bars.push(Math.max(15, Math.min(98, Math.round((freqData[i] / 255) * 100))));
+                }
+                setAudioBars(bars);
+
+                animFrameRef.current = requestAnimationFrame(updateRealVisemeFromAudio);
+              };
+
+              if (visemeTimerRef.current) {
+                clearInterval(visemeTimerRef.current);
+                visemeTimerRef.current = null;
+              }
+              animFrameRef.current = requestAnimationFrame(updateRealVisemeFromAudio);
+            }
+          } catch {
+            // Cadence lip-sync timer remains active if AudioContext fails
+          }
+
+          audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            onSpeechComplete();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(audioUrl);
+            onSpeechComplete();
+          };
+
+          await audio.play();
+          return;
+        }
+      } catch (err) {
+        console.warn('Server TTS unavailable, trying direct browser neural voice:', err);
+      }
+
+      // Direct browser playback of Google neural voice (browser trusts system certs)
+      try {
+        const cleaned = text.replace(/[*#_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 700);
+        const sentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+        const chunks: string[] = [];
+        let cur = '';
+        for (const s of sentences) {
+          const t = s.trim();
+          if (!t) continue;
+          if ((cur + ' ' + t).trim().length <= 180) cur = (cur + ' ' + t).trim();
+          else {
+            if (cur) chunks.push(cur);
+            cur = t.slice(0, 180);
+          }
+        }
+        if (cur) chunks.push(cur);
+
+        if (chunks.length > 0) {
+          setActiveVoiceEngineLabel('Google Neural HD Voice');
+          startCadenceLipSync(text);
+          let idx = 0;
+          const playNext = () => {
+            if (!isSpeakingRef.current || idx >= chunks.length) {
+              onSpeechComplete();
+              return;
+            }
+            const a = new Audio(
+              `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=${encodeURIComponent(chunks[idx])}`
+            );
+            a.playbackRate = Math.max(0.65, Math.min(1.35, rateToUse));
+            htmlAudioRef.current = a;
+            a.onended = () => {
+              idx += 1;
+              playNext();
+            };
+            a.onerror = () => {
+              if (idx === 0) {
+                // Nothing played: fall back to local voice
+                htmlAudioRef.current = null;
+                speakRealisticText(text, {
+                  rate: rateToUse,
+                  pitch: 1.05,
+                  preferBrowserTTS: true,
+                  onEnd: onSpeechComplete,
+                });
+              } else {
+                onSpeechComplete();
+              }
+            };
+            a.play().catch(() => a.onerror && (a.onerror as any)(new Event('error')));
+          };
+          playNext();
+          return;
+        }
+      } catch (err) {
+        console.warn('Direct neural voice failed:', err);
+      }
+
+      // Fallback to local neural browser TTS if offline
       const wordCount = text.trim().split(/\s+/).length;
       const estimatedMs = Math.max(
         1800,
         Math.min(18000, Math.round((wordCount / (2.4 * rateToUse)) * 1000))
       );
-
-      startLipSyncAnimation(text);
+      startCadenceLipSync(text);
       const fallbackTimeout = setTimeout(() => {
-        stopLipSyncAnimation();
+        onSpeechComplete();
       }, estimatedMs);
 
       speakRealisticText(text, {
         rate: rateToUse,
-        pitch: 1.04,
-        onStart: () => {
-          startLipSyncAnimation(text);
-        },
+        pitch: 1.05,
+        preferBrowserTTS: true,
+        onStart: () => startCadenceLipSync(text),
         onEnd: () => {
           clearTimeout(fallbackTimeout);
-          stopLipSyncAnimation();
+          onSpeechComplete();
         },
       });
     },
-    [voiceMuted, voiceSpeed, startLipSyncAnimation, stopLipSyncAnimation]
+    [
+      voiceMuted,
+      voiceSpeed,
+      geminiVoice,
+      geminiApiKeyInput,
+      stopAllVoiceAndLipSync,
+      startCadenceLipSync,
+    ]
   );
 
-  // Start or restart session with selected Native Language & English Level
+  // =========================================================================
+  // HANDS-FREE CONTINUOUS SPEECH RECOGNITION (NO REPEATED MIC CLICKS!)
+  // =========================================================================
+  const startHandsFreeListening = useCallback(() => {
+    if (isSpeakingRef.current || loading) return;
+
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition ||
+          (window as any).webkitSpeechRecognition
+        : null;
+
+    if (!SpeechRecognition) {
+      setMicError(
+        'Voice microphone requires Chrome, Edge, or Safari. You can also type or click any test sentence below!'
+      );
+      return;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch {}
+    }
+
+    try {
+      setMicError(null);
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      let accumulatedTranscript = '';
+      let submitted = false;
+
+      const submitCapturedSpeech = (textToSend: string) => {
+        if (submitted) return;
+        const cleaned = textToSend.trim();
+        if (cleaned.length < 2) return;
+        submitted = true;
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        try {
+          recognition.onend = null;
+          recognition.stop();
+        } catch {}
+        setIsListening(false);
+        sendSentenceRef.current(cleaned);
+      };
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setInterimTranscript('');
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        let finalPart = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalPart += t + ' ';
+          } else {
+            interim += t;
+          }
+        }
+        accumulatedTranscript = (finalPart + interim).trim();
+        setInterimTranscript(accumulatedTranscript);
+        setUserInput(accumulatedTranscript);
+
+        // Reset 1.6-second silence timer after every word spoken!
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        if (accumulatedTranscript.split(/\s+/).length >= 2) {
+          silenceTimerRef.current = setTimeout(() => {
+            submitCapturedSpeech(accumulatedTranscript);
+          }, 1600);
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        if (e?.error === 'not-allowed') {
+          setMicError(
+            'Microphone access blocked by browser. Click the lock icon in the address bar to allow Microphone.'
+          );
+          setHandsFreeAutoMic(false);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        if (!submitted && accumulatedTranscript.trim().length > 1) {
+          submitCapturedSpeech(accumulatedTranscript);
+        } else if (
+          !submitted &&
+          handsFreeRef.current &&
+          !isSpeakingRef.current
+        ) {
+          // Keep listening seamlessly in hands-free mode!
+          setTimeout(() => {
+            if (handsFreeRef.current && !isSpeakingRef.current) {
+              startAutoMicRef.current();
+            }
+          }, 400);
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setIsListening(false);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    startAutoMicRef.current = startHandsFreeListening;
+  }, [startHandsFreeListening]);
+
+  // Start or restart session with selected Language, Level, Mode & Roleplay Scenario
   const startLiveAgentSession = async (
     chosenLang = nativeLanguage,
-    chosenLevel = learnerLevel
+    chosenLevel = learnerLevel,
+    chosenMode = sessionMode,
+    chosenScenario = roleplayScenario
   ) => {
     setSetupCompleted(true);
     setLoading(true);
-
-    const buildFallbackInitialTurn = (): LiveAgentTurn => {
-      const isUr = chosenLang === 'ur';
-      const isHi = chosenLang === 'hi';
-      return {
-        id: `turn-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        spokenTeacherReply:
-          chosenLevel === 'basic'
-            ? 'Hello and welcome! I am Sophia, your live English teacher. Tell me in English: What is your name and what do you do every morning?'
-            : chosenLevel === 'mid'
-              ? 'Welcome to your Intermediate Live English Session! Tell me about a memorable trip you took or what you are working on this week.'
-              : 'Welcome to Advanced Executive English! How has technology transformed communication in your industry?',
-        nativeLanguageGreetingOrFeedback: isUr
-          ? `السلام علیکم! میں صوفیہ ہوں، آپ کی لائیو اے آئی انگلش ٹیچر۔ آپ نے اردو زبان اور ${chosenLevel.toUpperCase()} لیول منتخب کیا ہے۔ نیچے مائیک دبا کر یا لکھ کر کوئی بھی انگلش جملہ بولیں، میں آپ کی غلطیاں درست کر کے تفصیلی کارڈز میں سمجھاؤں گی!`
-          : isHi
-            ? `नमस्ते! मैं सोफिया हूँ, आपकी लाइव एआई इंग्लिश टीचर। नीचे माइक दबाकर या लिखकर कोई भी अंग्रेजी वाक्य बोलें, मैं आपकी गलतियाँ सुधार कर कार्ड्स में समझाऊँगी!`
-            : `Welcome! Speak or type any English sentence below, and I will correct your mistakes and explain every grammar rule in your native language.`,
-        hasMistake: false,
-        originalUserSentence: 'Session Started — Speak or click a sample sentence above!',
-        correctedEnglishSentence:
-          'Hello Sophia, I am excited to practice my spoken English today.',
-        advancedAlternativeSentence:
-          'I am eager to sharpen my English fluency through interactive coaching.',
-        mistakeExplanationInNative: isUr
-          ? 'آپ نیچے مائیک کے بٹن پر کلک کر کے بول سکتے ہیں، یا اوپر دیے گئے کسی بھی ٹیسٹ جملے پر کلک کر کے دیکھ سکتے ہیں کہ میں غلط فقرات کو کیسے درست کرتی ہوں۔'
-          : 'Tap the microphone button to speak aloud, or click any sample sentence above to test grammar corrections.',
-        grammarRuleTitle: `${chosenLevel.toUpperCase()} Level • Live Bilingual Coaching Ready`,
-        encouragementInNative: isUr
-          ? 'شاباش! بلا جھجھک انگلش بولنے کی کوشش کریں!'
-          : 'Speak with confidence — every mistake helps you learn faster!',
-        nextTestPrompt: {
-          instructionInNative: isUr
-            ? '🎙️ اب مائیک دبا کر یہ آسان انگلش فقرہ بولیں یا اپنا تعارف کروائیں:'
-            : '🎙️ Tap the microphone and speak this sentence aloud:',
-          targetEnglishToSpeak:
-            'Hello Sophia, I want to improve my English speaking skills.',
-          questionForUser:
-            'What is your favorite hobby or what did you do yesterday?',
-        },
-        vocabularyCards: [
-          {
-            word: 'Confident',
-            phonetic: '/ˈkɒn.fɪ.dənt/',
-            nativeMeaning: isUr ? 'پراعتماد' : 'Self-assured and fearless',
-            example: 'Speaking aloud every day makes you feel confident.',
-          },
-          {
-            word: 'Fluency',
-            phonetic: '/ˈfluː.ən.si/',
-            nativeMeaning: isUr ? 'روانی سے بولنا' : 'Smooth speaking ability',
-            example: 'Consistent practice is the secret to English fluency.',
-          },
-          {
-            word: 'Opportunity',
-            phonetic: '/ˌɒp.əˈtjuː.nə.ti/',
-            nativeMeaning: isUr ? 'سنہری موقع' : 'A favorable career chance',
-            example: 'Good English opens doors to global career opportunities.',
-          },
-        ],
-        fluencyScore: 92,
-        grammarScore: 95,
-        engine: 'miami-bilingual-engine',
-      };
-    };
+    stopAllVoiceAndLipSync();
 
     try {
       const res = await fetch('/api/ai/live-agent', {
@@ -402,6 +799,8 @@ export default function LiveAITalkingAgentPage() {
           isInitialGreeting: true,
           nativeLanguage: chosenLang,
           level: chosenLevel,
+          sessionMode: chosenMode,
+          roleplayScenario: chosenScenario,
           apiKeyOverride: geminiApiKeyInput.trim() || undefined,
         }),
       });
@@ -421,89 +820,108 @@ export default function LiveAITalkingAgentPage() {
         playSuccessSound();
         setTimeout(() => {
           speakWithAvatarLipSync(
-            `${payload.spokenTeacherReply || payload.spokenGreetingOrReply || ''} ${
-              payload.nextTestPrompt?.questionForUser || ''
-            }`
+            payload.spokenTeacherReply || payload.spokenGreetingOrReply || '',
+            voiceSpeed,
+            true
           );
-        }, 250);
-      } else {
-        const fb = buildFallbackInitialTurn();
-        setTurns([fb]);
-        setTimeout(() => speakWithAvatarLipSync(fb.spokenTeacherReply), 250);
+        }, 200);
       }
     } catch (err) {
-      console.error('Failed to start Live Agent, using local fallback:', err);
-      const fb = buildFallbackInitialTurn();
-      setTurns([fb]);
-      setTimeout(() => speakWithAvatarLipSync(fb.spokenTeacherReply), 250);
+      console.error('Failed to start Live Agent:', err);
     } finally {
       setLoading(false);
     }
   };
 
   // Send user spoken or typed sentence to the Live Agent
-  const sendSentenceToLiveAgent = async (textToSubmit?: string) => {
-    const cleanText = (textToSubmit ?? userInput).trim();
-    if (!cleanText || loading) return;
+  const sendSentenceToLiveAgent = useCallback(
+    async (textToSubmit?: string) => {
+      const cleanText = (textToSubmit ?? userInput).trim();
+      if (!cleanText || loading) return;
 
-    setUserInput('');
-    setInterimTranscript('');
-    setLoading(true);
-
-    try {
-      const historyPayload = turns.slice(-4).map((t) => ({
-        user: t.userSpokenText || '',
-        agent: t.spokenTeacherReply || '',
-      }));
-
-      const res = await fetch('/api/ai/live-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: cleanText,
-          nativeLanguage,
-          level: learnerLevel,
-          conversationHistory: historyPayload,
-          apiKeyOverride: geminiApiKeyInput.trim() || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      const payload = data?.response || data?.data;
-      if (payload) {
-        const newTurn: LiveAgentTurn = {
-          id: `turn-${Date.now()}`,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          userSpokenText: cleanText,
-          ...payload,
-          engine: data.engine,
-        };
-        setTurns((prev) => [...prev, newTurn]);
-        playSuccessSound();
-
-        // Speak the teacher's feedback + corrected sentence + next question
-        const speechScript = payload.hasMistake
-          ? `${payload.spokenTeacherReply} The correct sentence is: ${payload.correctedEnglishSentence}. ${payload.nextTestPrompt?.questionForUser || ''}`
-          : `${payload.spokenTeacherReply} ${payload.nextTestPrompt?.questionForUser || ''}`;
-
-        setTimeout(() => {
-          speakWithAvatarLipSync(speechScript);
-        }, 200);
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.stop();
+        } catch {}
+        setIsListening(false);
       }
-    } catch (err) {
-      console.error('Live Agent error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      setUserInput('');
+      setInterimTranscript('');
+      setLoading(true);
+
+      try {
+        const res = await fetch('/api/ai/live-agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: cleanText,
+            nativeLanguage,
+            level: learnerLevel,
+            sessionMode,
+            roleplayScenario,
+            turnCount: turns.length,
+            apiKeyOverride: geminiApiKeyInput.trim() || undefined,
+          }),
+        });
+
+        const data = await res.json();
+        const payload = data?.response || data?.data;
+        if (payload) {
+          const newTurn: LiveAgentTurn = {
+            id: `turn-${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            userSpokenText: cleanText,
+            ...payload,
+            engine: data.engine,
+          };
+          setTurns((prev) => [...prev, newTurn]);
+          playSuccessSound();
+
+          setTimeout(() => {
+            speakWithAvatarLipSync(
+              payload.spokenTeacherReply || payload.spokenGreetingOrReply || '',
+              voiceSpeed,
+              true
+            );
+          }, 150);
+        }
+      } catch (err) {
+        console.error('Live Agent error:', err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      userInput,
+      loading,
+      nativeLanguage,
+      learnerLevel,
+      sessionMode,
+      roleplayScenario,
+      turns.length,
+      geminiApiKeyInput,
+      voiceSpeed,
+      speakWithAvatarLipSync,
+    ]
+  );
+
+  useEffect(() => {
+    sendSentenceRef.current = sendSentenceToLiveAgent;
+  }, [sendSentenceToLiveAgent]);
 
   // Save Gemini API Key
   const handleSaveApiKey = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('miami_gemini_live_api_key', geminiApiKeyInput.trim());
+      localStorage.setItem(
+        'miami_gemini_live_api_key',
+        geminiApiKeyInput.trim()
+      );
     }
     try {
       const res = await fetch('/api/ai/live-agent', {
@@ -513,95 +931,49 @@ export default function LiveAITalkingAgentPage() {
       });
       const data = await res.json();
       if (data.hasApiKey) setHasServerKey(true);
-      setApiKeySavedMsg('✅ Gemini Live API Key saved & activated!');
+      setApiKeySavedMsg(
+        '✅ Gemini Live API Key saved! Native Gemini Voice (Aoede/Kore) is now active!'
+      );
       setTimeout(() => {
         setApiKeySavedMsg(null);
         setShowApiKeyModal(false);
-      }, 1400);
+      }, 1500);
     } catch {
       setApiKeySavedMsg('Saved in browser storage!');
     }
   };
 
-  // Toggle Live Microphone (Web Speech API)
-  const toggleMicrophone = () => {
+  // Manual toggle for microphone / hands-free call
+  const toggleMicrophoneOrHandsFree = () => {
     setMicError(null);
     if (isListening) {
       if (recognitionRef.current) {
         try {
+          recognitionRef.current.onend = null;
           recognitionRef.current.stop();
         } catch {}
       }
       setIsListening(false);
+      if (interimTranscript.trim().length > 1) {
+        sendSentenceToLiveAgent(interimTranscript.trim());
+      }
       return;
     }
 
-    const SpeechRecognition =
-      typeof window !== 'undefined'
-        ? (window as any).SpeechRecognition ||
-          (window as any).webkitSpeechRecognition
-        : null;
-
-    if (!SpeechRecognition) {
-      setMicError(
-        'Voice microphone requires Chrome, Edge, or Safari. You can also type or click any test sentence below!'
-      );
-      return;
-    }
-
-    try {
-      stopRealisticSpeech();
-      stopLipSyncAnimation();
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US';
-      recognition.interimResults = true;
-      recognition.continuous = false;
-
-      let finalCaptured = '';
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setInterimTranscript('');
-      };
-
-      recognition.onresult = (event: any) => {
-        let interim = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalCaptured += transcript + ' ';
-          } else {
-            interim += transcript;
-          }
-        }
-        setInterimTranscript(finalCaptured || interim);
-        setUserInput((finalCaptured || interim).trim());
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        const spoken = finalCaptured.trim();
-        if (spoken.length > 1) {
-          sendSentenceToLiveAgent(spoken);
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch {
-      setIsListening(false);
-      setMicError('Could not start microphone. Check browser permissions.');
-    }
+    stopAllVoiceAndLipSync();
+    setHandsFreeAutoMic(true);
+    handsFreeRef.current = true;
+    startHandsFreeListening();
   };
 
   const selectedLangObj = getBaseLanguageInfo(nativeLanguage);
   const selectedLevelObj =
     LEVEL_OPTIONS.find((l) => l.id === learnerLevel) || LEVEL_OPTIONS[0];
+  const selectedModeObj =
+    SESSION_MODES.find((m) => m.id === sessionMode) || SESSION_MODES[0];
+  const selectedRoleplayObj =
+    ROLEPLAY_OPTIONS.find((r) => r.id === roleplayScenario) ||
+    ROLEPLAY_OPTIONS[0];
   const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null;
   const isRtlLang = ['ur', 'ar', 'fa'].includes(nativeLanguage);
 
@@ -631,38 +1003,58 @@ export default function LiveAITalkingAgentPage() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-black uppercase tracking-widest">
-                    ● Gemini Live Talking AI Teacher
+                    ● {activeVoiceEngineLabel}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-[10px] font-black uppercase tracking-widest">
                     {selectedLangObj.flag} {selectedLangObj.nativeName} → 🇺🇸 English
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-300 text-[10px] font-black uppercase tracking-widest">
-                    {selectedLevelObj.badge} ({selectedLevelObj.cefr})
+                    {selectedLevelObj.badge} • {selectedModeObj.badge}
                   </span>
                 </div>
                 <h1 className="text-xl sm:text-3xl font-black tracking-tight mt-1">
-                  Sophia — Miami Live AI Talking Coach
+                  Sophia — Gemini Live AI Teacher & Roleplay Partner
                 </h1>
                 <p className="text-xs sm:text-sm text-blue-200 font-medium">
-                  Real-time lip-synced English teacher that speaks in your language, tests you, and fixes every sentence mistake in detailed cards.
+                  Realistic Gemini neural voice, hands-free continuous auto-mic (no need to click mic repeatedly!), live roleplay, and detailed sentence correction cards.
                 </p>
               </div>
             </div>
 
-            {/* Right Quick Controls: Change Language/Level & Gemini API Key */}
+            {/* Right Quick Controls: Voice Persona, Setup & Gemini API Key */}
             <div className="flex flex-wrap items-center gap-2.5">
+              {/* Gemini Prebuilt Voice Selector (Aoede, Kore, Puck, Charon) */}
+              <select
+                value={geminiVoice}
+                onChange={(e) => setGeminiVoice(e.target.value as GeminiVoiceName)}
+                className="px-3 py-2.5 rounded-xl bg-slate-900 border border-blue-400/40 text-xs font-extrabold text-amber-300 cursor-pointer focus:outline-none"
+                title="Select Gemini Voice Persona"
+              >
+                {GEMINI_VOICE_OPTIONS.map((v) => (
+                  <option key={v.id} value={v.id} className="bg-slate-900 text-white">
+                    🔊 Voice: {v.label}
+                  </option>
+                ))}
+              </select>
+
               {setupCompleted && (
                 <button
                   type="button"
                   onClick={() => {
-                    stopRealisticSpeech();
-                    stopLipSyncAnimation();
+                    stopAllVoiceAndLipSync();
+                    if (recognitionRef.current) {
+                      try {
+                        recognitionRef.current.onend = null;
+                        recognitionRef.current.stop();
+                      } catch {}
+                    }
+                    setIsListening(false);
                     setSetupCompleted(false);
                   }}
                   className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-extrabold text-white flex items-center gap-2 cursor-pointer transition-all"
                 >
                   <Sliders className="w-4 h-4 text-amber-300" />
-                  <span>Change Language / Level</span>
+                  <span>Language / Level</span>
                 </button>
               )}
 
@@ -694,7 +1086,7 @@ export default function LiveAITalkingAgentPage() {
                 <div className="flex items-center gap-2.5">
                   <KeyRound className="w-5 h-5 text-blue-600" />
                   <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">
-                    Configure Gemini Live API Key (Google AI Studio)
+                    Configure Gemini Live API Key (For Native Aoede / Kore Audio & Gemini 2.0)
                   </h3>
                 </div>
                 <button
@@ -706,7 +1098,7 @@ export default function LiveAITalkingAgentPage() {
                 </button>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                Paste your <strong>Gemini API Key</strong> (<code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">AIzaSy...</code>) below to power live bilingual diagnostics with Gemini 1.5 Flash / Live. Even without an external key, our built-in Miami Bilingual Diagnostic Engine works 100% automatically!
+                Paste your <strong>Gemini API Key</strong> (<code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">AIzaSy...</code>) to unlock direct 24kHz Gemini Native Audio (<code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Aoede</code>, <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Kore</code>, <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Puck</code>) + live roleplay intelligence. Even without a key, our server streams natural Google Neural HD female audio automatically!
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
@@ -733,7 +1125,8 @@ export default function LiveAITalkingAgentPage() {
           )}
 
           {/* =====================================================================
-              STEP 1 & STEP 2 ONBOARDING SCREEN (SELECT LANGUAGE + SELECT LEVEL)
+              STEP 1, STEP 2 & STEP 3 ONBOARDING SCREEN
+              (SELECT LANGUAGE + SELECT LEVEL + SELECT TEACHER / ROLEPLAY MODE)
              ===================================================================== */}
           {!setupCompleted ? (
             <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-lg space-y-8">
@@ -742,14 +1135,11 @@ export default function LiveAITalkingAgentPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-xs font-black uppercase tracking-wider">
-                      <Globe className="w-3.5 h-3.5" /> Step 1 of 2 • Apni Zuban Select Karein
+                      <Globe className="w-3.5 h-3.5" /> Step 1 of 3 • Apni Zuban Select Karein
                     </span>
                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2">
                       Choose Your Native Language (کس زبان میں سمجھنا چاہتے ہیں؟)
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                      Sophia will explain your English mistakes, grammar rules, and vocabulary meanings in your selected language.
-                    </p>
                   </div>
                   <button
                     type="button"
@@ -809,14 +1199,11 @@ export default function LiveAITalkingAgentPage() {
               <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <div>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-black uppercase tracking-wider">
-                    <GraduationCap className="w-3.5 h-3.5" /> Step 2 of 2 • Select Your English Level
+                    <GraduationCap className="w-3.5 h-3.5" /> Step 2 of 3 • Select Your English Level
                   </span>
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2">
                     What is Your Current English Level? (اپنا لیول منتخب کریں)
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Choose Basic, Mid, or Advanced so the Live AI Teacher adjusts her speaking test and sentence corrections to your level.
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -883,39 +1270,266 @@ export default function LiveAITalkingAgentPage() {
                 </div>
               </div>
 
+              {/* Step 3: Select Practice Mode (Live Teacher vs. Roleplay vs. Guided Lesson) */}
+              <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-xs font-black uppercase tracking-wider">
+                    <Users className="w-3.5 h-3.5" /> Step 3 of 3 • Choose Teaching, Roleplay or Guided Lesson
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2">
+                    How Would You Like Sophia to Practice With You Today?
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {SESSION_MODES.map((m) => {
+                    const active = sessionMode === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          setSessionMode(m.id);
+                          playSuccessSound();
+                        }}
+                        className={`p-5 rounded-3xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          active
+                            ? 'bg-gradient-to-br from-indigo-900 to-blue-950 text-white border-emerald-400 shadow-lg -translate-y-0.5'
+                            : 'bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                        }`}
+                      >
+                        <div className="space-y-2">
+                          <span
+                            className={`inline-block px-3 py-1 rounded-full text-xs font-black ${
+                              active
+                                ? 'bg-emerald-400 text-slate-950'
+                                : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300'
+                            }`}
+                          >
+                            {m.badge}
+                          </span>
+                          <h3 className="text-base sm:text-lg font-black pt-1">
+                            {m.title}
+                          </h3>
+                          <p
+                            className={`text-xs leading-relaxed ${
+                              active
+                                ? 'text-blue-100'
+                                : 'text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            {m.desc}
+                          </p>
+                        </div>
+                        <div
+                          dir="rtl"
+                          className={`mt-3 pt-2 border-t text-xs font-bold ${
+                            active
+                              ? 'border-white/15 text-amber-300'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                          }`}
+                        >
+                          {m.urduTitle}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Roleplay Scenario Picker (Shown when Roleplay Mode is selected) */}
+                {sessionMode === 'roleplay' && (
+                  <div className="p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 space-y-3">
+                    <div className="text-xs font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
+                      🎭 Select Your Live Roleplay Scenario:
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {ROLEPLAY_OPTIONS.map((rp) => {
+                        const active = roleplayScenario === rp.id;
+                        return (
+                          <button
+                            key={rp.id}
+                            type="button"
+                            onClick={() => setRoleplayScenario(rp.id)}
+                            className={`p-3.5 rounded-2xl border-2 text-left cursor-pointer transition-all ${
+                              active
+                                ? 'bg-indigo-700 text-white border-amber-300 shadow-md'
+                                : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xl">{rp.emoji}</span>
+                              <span
+                                dir="rtl"
+                                className={`text-[11px] font-bold ${
+                                  active ? 'text-amber-300' : 'text-slate-500'
+                                }`}
+                              >
+                                {rp.urduLabel}
+                              </span>
+                            </div>
+                            <div className="font-black text-sm mt-1">
+                              {rp.title}
+                            </div>
+                            <div
+                              className={`text-[11px] font-semibold ${
+                                active ? 'text-indigo-200' : 'text-slate-500'
+                              }`}
+                            >
+                              {rp.roleDesc}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Start Live Session CTA */}
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800/90 dark:to-indigo-950/60 p-5 rounded-2xl border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{selectedLangObj.flag}</span>
                   <div>
                     <div className="text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-400">
-                      Ready to Launch Live AI Session
+                      🟢 Hands-Free Auto-Mic & Gemini Neural Voice Ready
                     </div>
                     <div className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                      Language: {selectedLangObj.nativeName} ({selectedLangObj.name}) • Level: {selectedLevelObj.title} ({selectedLevelObj.cefr})
+                      {selectedLangObj.nativeName} • {selectedLevelObj.title} • {selectedModeObj.title}
                     </div>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => startLiveAgentSession(nativeLanguage, learnerLevel)}
+                  onClick={() =>
+                    startLiveAgentSession(
+                      nativeLanguage,
+                      learnerLevel,
+                      sessionMode,
+                      roleplayScenario
+                    )
+                  }
                   className="w-full sm:w-auto btn-3d-primary px-8 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2.5 cursor-pointer shadow-lg"
                 >
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Start Live AI Talking Teacher Now</span>
+                  <PhoneCall className="w-4 h-4" />
+                  <span>Start Hands-Free Live AI Call Now</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
           ) : (
             /* =====================================================================
-               LIVE AI TALKING AGENT STUDIO + DETAILED CORRECTION CARDS
+               LIVE AI TALKING AGENT STUDIO + ROLEPLAY BAR + DETAILED CARDS
                ===================================================================== */
             <div className="space-y-6">
-              {/* TOP GRID: LEFT = REALISTIC LIP-SYNCED AVATAR, RIGHT = MIC & LIVE TEST */}
+              {/* INSTANT MODE & ROLEPLAY SWITCHER BAR INSIDE STUDIO */}
+              <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {SESSION_MODES.map((m) => {
+                      const active = sessionMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            setSessionMode(m.id);
+                            startLiveAgentSession(
+                              nativeLanguage,
+                              learnerLevel,
+                              m.id,
+                              roleplayScenario
+                            );
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-black cursor-pointer transition-all border ${
+                            active
+                              ? 'bg-blue-700 text-white border-blue-900 shadow-xs'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                          }`}
+                        >
+                          {m.badge}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Hands-Free Auto-Mic Call Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !handsFreeAutoMic;
+                      setHandsFreeAutoMic(next);
+                      handsFreeRef.current = next;
+                      if (!next && recognitionRef.current) {
+                        try {
+                          recognitionRef.current.onend = null;
+                          recognitionRef.current.stop();
+                        } catch {}
+                        setIsListening(false);
+                      } else if (next && !isSpeakingRef.current) {
+                        startHandsFreeListening();
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 cursor-pointer border transition-all ${
+                      handsFreeAutoMic
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                    }`}
+                  >
+                    {handsFreeAutoMic ? (
+                      <>
+                        <PhoneCall className="w-3.5 h-3.5 animate-pulse" />
+                        <span>🟢 Hands-Free Auto-Mic: ON (No Need to Click Mic)</span>
+                      </>
+                    ) : (
+                      <>
+                        <PhoneOff className="w-3.5 h-3.5" />
+                        <span>Hands-Free Auto-Mic: Paused</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Roleplay Scenario Pills if in Roleplay Mode */}
+                {sessionMode === 'roleplay' && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-black uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mr-1">
+                      <Briefcase className="w-3.5 h-3.5" />
+                      <span>Active Roleplay:</span>
+                    </span>
+                    {ROLEPLAY_OPTIONS.map((rp) => {
+                      const active = roleplayScenario === rp.id;
+                      return (
+                        <button
+                          key={rp.id}
+                          type="button"
+                          onClick={() => {
+                            setRoleplayScenario(rp.id);
+                            startLiveAgentSession(
+                              nativeLanguage,
+                              learnerLevel,
+                              'roleplay',
+                              rp.id
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-1.5 border ${
+                            active
+                              ? 'bg-indigo-700 text-white border-indigo-900'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                          }`}
+                        >
+                          <span>{rp.emoji}</span>
+                          <span>{rp.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* TOP GRID: LEFT = REALISTIC LIP-SYNCED AVATAR, RIGHT = HANDS-FREE MIC & LIVE TEST */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* LEFT 5 COLS: REALISTIC TALKING AI TEACHER AVATAR WITH LIP MOVEMENTS */}
+                {/* LEFT 5 COLS: REALISTIC TALKING AI TEACHER AVATAR WITH REAL AUDIO LIP MOVEMENTS */}
                 <div className="lg:col-span-5 rounded-3xl bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white border-2 border-blue-500/60 shadow-2xl p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden">
                   {/* Top Studio Status Pills */}
                   <div className="flex items-center justify-between gap-2 z-10">
@@ -931,15 +1545,15 @@ export default function LiveAITalkingAgentPage() {
                       />
                       <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
                         {isSpeaking
-                          ? '🗣️ Speaking (Lip-Sync Active)'
+                          ? `🗣️ Speaking (${geminiVoice} Voice)`
                           : isListening
-                            ? '🎙️ Listening to You...'
-                            : '🟢 Live Teacher Ready'}
+                            ? '🎙️ Hands-Free Listening — Speak Now!'
+                            : '🟢 Live Call Connected'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      {[0.75, 0.95, 1.1].map((spd) => (
+                      {[0.85, 1.0, 1.15].map((spd) => (
                         <button
                           key={spd}
                           type="button"
@@ -957,8 +1571,7 @@ export default function LiveAITalkingAgentPage() {
                         type="button"
                         onClick={() => {
                           if (!voiceMuted) {
-                            stopRealisticSpeech();
-                            stopLipSyncAnimation();
+                            stopAllVoiceAndLipSync();
                           }
                           setVoiceMuted((m) => !m);
                         }}
@@ -978,13 +1591,12 @@ export default function LiveAITalkingAgentPage() {
                       REALISTIC HUMAN TEACHER SVG PORTRAIT WITH DYNAMIC VISEMES
                      ========================================================== */}
                   <div className="my-4 flex flex-col items-center justify-center relative">
-                    {/* Glowing Halo Behind Teacher when Speaking */}
                     <div
                       className={`w-64 h-64 sm:w-72 sm:h-72 rounded-full flex items-center justify-center transition-all duration-300 ${
                         isSpeaking
                           ? 'ring-8 ring-emerald-400/30 shadow-[0_0_60px_rgba(16,185,129,0.45)]'
                           : isListening
-                            ? 'ring-8 ring-rose-500/30 shadow-[0_0_50px_rgba(244,63,94,0.4)]'
+                            ? 'ring-8 ring-rose-500/35 shadow-[0_0_50px_rgba(244,63,94,0.45)]'
                             : 'ring-4 ring-blue-400/20'
                       }`}
                     >
@@ -1019,7 +1631,6 @@ export default function LiveAITalkingAgentPage() {
                           </linearGradient>
                         </defs>
 
-                        {/* Studio Backdrop Glow */}
                         <circle cx="160" cy="155" r="135" fill="#1e293b" opacity="0.55" />
 
                         {/* Back Hair Volume */}
@@ -1034,7 +1645,6 @@ export default function LiveAITalkingAgentPage() {
                           d="M55 340 C62 274, 102 254, 160 254 C218 254, 258 274, 265 340 Z"
                           fill="url(#blazerGrad)"
                         />
-                        {/* White Blouse & Gold Necklace */}
                         <polygon points="134,254 160,308 186,254" fill="#f8fafc" />
                         <path
                           d="M140 256 Q160 272 180 256"
@@ -1049,7 +1659,7 @@ export default function LiveAITalkingAgentPage() {
                         <circle cx="91" cy="176" r="4.5" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1" />
                         <circle cx="229" cy="176" r="4.5" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1" />
 
-                        {/* Head / Face Contour (moves slightly with jaw when speaking wide) */}
+                        {/* Head / Face Contour */}
                         <path
                           d={
                             viseme === 'wide_ah' || viseme === 'round_oh'
@@ -1059,11 +1669,10 @@ export default function LiveAITalkingAgentPage() {
                           fill="url(#skinGrad)"
                         />
 
-                        {/* Soft Cheek Blush */}
                         <ellipse cx="118" cy="172" rx="15" ry="9" fill="#f43f5e" opacity="0.16" />
                         <ellipse cx="202" cy="172" rx="15" ry="9" fill="#f43f5e" opacity="0.16" />
 
-                        {/* Eyebrows (raise slightly when speaking for natural expression) */}
+                        {/* Eyebrows */}
                         <g
                           transform={
                             isSpeaking ? 'translate(0, -2.5)' : 'translate(0, 0)'
@@ -1085,7 +1694,7 @@ export default function LiveAITalkingAgentPage() {
                           />
                         </g>
 
-                        {/* Eyes (with natural blinking) */}
+                        {/* Eyes */}
                         {isBlinking ? (
                           <g>
                             <path
@@ -1105,7 +1714,6 @@ export default function LiveAITalkingAgentPage() {
                           </g>
                         ) : (
                           <g>
-                            {/* Left Eye */}
                             <ellipse cx="129" cy="141" rx="14" ry="9.5" fill="#ffffff" />
                             <circle cx="130" cy="141" r="6.8" fill="#4b2e1e" />
                             <circle cx="130" cy="141" r="3.4" fill="#0f172a" />
@@ -1118,7 +1726,6 @@ export default function LiveAITalkingAgentPage() {
                               fill="none"
                             />
 
-                            {/* Right Eye */}
                             <ellipse cx="191" cy="141" rx="14" ry="9.5" fill="#ffffff" />
                             <circle cx="190" cy="141" r="6.8" fill="#4b2e1e" />
                             <circle cx="190" cy="141" r="3.4" fill="#0f172a" />
@@ -1133,7 +1740,7 @@ export default function LiveAITalkingAgentPage() {
                           </g>
                         )}
 
-                        {/* Refined Nose */}
+                        {/* Nose */}
                         <path
                           d="M160 144 L156 171 Q160 175 166 171"
                           stroke="#c88a6b"
@@ -1142,9 +1749,7 @@ export default function LiveAITalkingAgentPage() {
                           fill="none"
                         />
 
-                        {/* =====================================================
-                            MULTI-VISEME REALISTIC LIP & MOUTH SYNCHRONIZATION
-                           ===================================================== */}
+                        {/* Multi-Viseme Realistic Lip & Mouth Synchronization */}
                         {viseme === 'closed' && (
                           <g>
                             <path
@@ -1178,13 +1783,9 @@ export default function LiveAITalkingAgentPage() {
 
                         {viseme === 'slightly_open' && (
                           <g>
-                            {/* Mouth Cavity */}
                             <ellipse cx="160" cy="198" rx="19" ry="7.5" fill="#4c0519" />
-                            {/* Upper Teeth */}
                             <rect x="145" y="191.5" width="30" height="4.5" rx="2" fill="#ffffff" />
-                            {/* Tongue */}
                             <ellipse cx="160" cy="202.5" rx="11" ry="3.5" fill="#fb7185" />
-                            {/* Upper & Lower Lips */}
                             <ellipse
                               cx="160"
                               cy="198"
@@ -1199,16 +1800,12 @@ export default function LiveAITalkingAgentPage() {
 
                         {viseme === 'wide_ah' && (
                           <g>
-                            {/* Open Mouth Cavity */}
                             <ellipse cx="160" cy="201" rx="22" ry="13.5" fill="#4c0519" />
-                            {/* Upper Teeth Row */}
                             <path
                               d="M142 191 L178 191 L176 197 L144 197 Z"
                               fill="#ffffff"
                             />
-                            {/* Realistic Tongue */}
                             <ellipse cx="160" cy="208" rx="14" ry="6" fill="#f43f5e" />
-                            {/* Sculpted Lips */}
                             <ellipse
                               cx="160"
                               cy="201"
@@ -1223,7 +1820,6 @@ export default function LiveAITalkingAgentPage() {
 
                         {viseme === 'round_oh' && (
                           <g>
-                            {/* Rounded O Vowel Lip Shape */}
                             <ellipse cx="160" cy="200" rx="13.5" ry="13" fill="#4c0519" />
                             <rect x="150" y="190" width="20" height="4" rx="1.5" fill="#ffffff" />
                             <ellipse cx="160" cy="207" rx="8.5" ry="4.5" fill="#f43f5e" />
@@ -1241,7 +1837,6 @@ export default function LiveAITalkingAgentPage() {
 
                         {viseme === 'teeth_fv' && (
                           <g>
-                            {/* F / V / S Dental Consonant Lip Shape */}
                             <ellipse cx="160" cy="197" rx="18" ry="5.5" fill="#4c0519" />
                             <rect x="144" y="193" width="32" height="5" rx="1.5" fill="#ffffff" />
                             <ellipse
@@ -1285,7 +1880,9 @@ export default function LiveAITalkingAgentPage() {
                           className={`w-1.5 rounded-full transition-all duration-75 ${
                             isSpeaking
                               ? 'bg-gradient-to-t from-blue-500 via-emerald-400 to-amber-300'
-                              : 'bg-slate-600'
+                              : isListening
+                                ? 'bg-rose-400 animate-pulse'
+                                : 'bg-slate-600'
                           }`}
                         />
                       ))}
@@ -1296,12 +1893,12 @@ export default function LiveAITalkingAgentPage() {
                   <div className="space-y-3 z-10">
                     <div className="p-3.5 rounded-2xl bg-slate-900/95 border border-white/15 text-xs sm:text-sm text-blue-100 font-semibold leading-relaxed">
                       <div className="text-[10px] font-black uppercase tracking-widest text-amber-300 mb-1">
-                        🗣️ Sophia (Live Spoken Reply):
+                        🗣️ Sophia ({sessionMode === 'roleplay' ? selectedRoleplayObj.roleDesc : 'Live Spoken Reply'}):
                       </div>
                       <p>
                         {latestTurn?.spokenTeacherReply ||
                           currentlySpokenText ||
-                          'Hello! Select a sentence or tap the microphone to speak with me live!'}
+                          'Hello! Speak naturally whenever my voice finishes!'}
                       </p>
                     </div>
 
@@ -1311,18 +1908,16 @@ export default function LiveAITalkingAgentPage() {
                         onClick={() => {
                           if (latestTurn) {
                             speakWithAvatarLipSync(
-                              `${latestTurn.spokenTeacherReply} ${
-                                latestTurn.hasMistake
-                                  ? `The correct sentence is: ${latestTurn.correctedEnglishSentence}.`
-                                  : ''
-                              } ${latestTurn.nextTestPrompt?.questionForUser || ''}`
+                              latestTurn.spokenTeacherReply,
+                              voiceSpeed,
+                              true
                             );
                           }
                         }}
                         className="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all"
                       >
                         <Volume2 className="w-4 h-4" />
-                        <span>Replay Teacher Voice</span>
+                        <span>Replay Gemini Voice ({geminiVoice})</span>
                       </button>
 
                       {latestTurn?.correctedEnglishSentence && (
@@ -1331,28 +1926,37 @@ export default function LiveAITalkingAgentPage() {
                           onClick={() =>
                             speakWithAvatarLipSync(
                               latestTurn.correctedEnglishSentence,
-                              0.72
+                              0.75,
+                              false
                             )
                           }
                           className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all"
                         >
-                          <span>🐢 Slow (0.7x)</span>
+                          <span>🐢 Slow (0.75x)</span>
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* RIGHT 7 COLS: LIVE SPEAKING TEST PROMPT + MICROPHONE + TEXT INPUT */}
+                {/* RIGHT 7 COLS: HANDS-FREE CALL STATUS + SPEAKING PROMPT + INPUT */}
                 <div className="lg:col-span-7 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-xl p-5 sm:p-7 flex flex-col justify-between space-y-5">
                   {/* Top Fluency & Grammar Score Meters */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
                       <span className="text-[11px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-400">
-                        🎯 Interactive English Speaking & Grammar Test
+                        {sessionMode === 'roleplay'
+                          ? `🎭 Live Roleplay: ${selectedRoleplayObj.emoji} ${selectedRoleplayObj.title}`
+                          : sessionMode === 'guided_lesson'
+                            ? '🎓 Guided Step-by-Step English Speaking Drill'
+                            : '👩‍🏫 Live English Teacher & Mistake Fixer'}
                       </span>
                       <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                        Speak or Type Your Answer Below
+                        {isListening
+                          ? '🎙️ Listening Automatically — Speak in English Now!'
+                          : isSpeaking
+                            ? '🔊 Sophia is Speaking — Mic Will Auto-Open Next...'
+                            : 'Speak Hands-Free or Type Below'}
                       </h2>
                     </div>
 
@@ -1378,25 +1982,28 @@ export default function LiveAITalkingAgentPage() {
                     )}
                   </div>
 
-                  {/* Current Live Speaking Test Card from AI Teacher */}
+                  {/* Current Live Speaking Prompt / Roleplay Prompt Card */}
                   {latestTurn?.nextTestPrompt && (
                     <div className="p-5 rounded-3xl bg-gradient-to-br from-blue-50 via-indigo-50/80 to-emerald-50/50 dark:from-slate-800 dark:via-indigo-950/50 dark:to-slate-800 border-2 border-blue-200 dark:border-blue-800 space-y-3">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="px-3 py-1 rounded-full bg-blue-700 text-white text-[11px] font-black uppercase tracking-wider">
-                          🎤 Live Speaking Challenge ({selectedLevelObj.badge})
+                          {sessionMode === 'roleplay'
+                            ? `🎭 Roleplay Turn #${turns.length}`
+                            : `🎤 Live Speaking Prompt (${selectedLevelObj.badge})`}
                         </span>
                         <button
                           type="button"
                           onClick={() =>
                             speakWithAvatarLipSync(
                               latestTurn.nextTestPrompt.targetEnglishToSpeak,
-                              0.85
+                              0.88,
+                              false
                             )
                           }
                           className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 text-xs font-black text-blue-700 dark:text-blue-300 flex items-center gap-1.5 cursor-pointer"
                         >
                           <Volume2 className="w-3.5 h-3.5" />
-                          <span>Hear Target Sentence</span>
+                          <span>Hear Sample Reply</span>
                         </button>
                       </div>
 
@@ -1409,42 +2016,42 @@ export default function LiveAITalkingAgentPage() {
                       </p>
 
                       {/* Target English Sentence Box */}
-                      <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          Practice Speaking This Out Loud or Answer Sophia&apos;s Question:
+                      <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 space-y-1.5">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                          🗣️ Speak This Sample Answer (Or Reply in Your Own Words):
                         </div>
-                        <p className="text-base sm:text-lg font-black text-blue-800 dark:text-blue-300 mt-0.5">
+                        <p className="text-base sm:text-lg font-black text-blue-800 dark:text-blue-300">
                           &ldquo;{latestTurn.nextTestPrompt.targetEnglishToSpeak}&rdquo;
                         </p>
-                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-1">
-                          💬 Question: {latestTurn.nextTestPrompt.questionForUser}
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400 pt-1">
+                          💬 Sophia Asked: &ldquo;{latestTurn.nextTestPrompt.questionForUser}&rdquo;
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Big Live Microphone Button + Text Input Bar */}
+                  {/* Hands-Free Live Mic Indicator + Text Input Bar */}
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                       <button
                         type="button"
-                        onClick={toggleMicrophone}
+                        onClick={toggleMicrophoneOrHandsFree}
                         disabled={loading}
                         className={`px-6 py-4 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2.5 cursor-pointer transition-all shrink-0 ${
                           isListening
                             ? 'bg-rose-600 text-white shadow-[0_0_25px_rgba(225,29,72,0.6)] animate-pulse'
-                            : 'bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md'
+                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md'
                         }`}
                       >
                         {isListening ? (
                           <>
-                            <MicOff className="w-5 h-5" />
-                            <span>Stop & Check My English</span>
+                            <Mic className="w-5 h-5 animate-bounce" />
+                            <span>🎙️ Auto-Listening... (Pause 1.5s to Send)</span>
                           </>
                         ) : (
                           <>
                             <Mic className="w-5 h-5" />
-                            <span>🎙️ Tap to Speak Live</span>
+                            <span>🎙️ Resume Hands-Free Mic</span>
                           </>
                         )}
                       </button>
@@ -1460,27 +2067,30 @@ export default function LiveAITalkingAgentPage() {
                           type="text"
                           value={userInput}
                           onChange={(e) => setUserInput(e.target.value)}
-                          placeholder="Or type any English sentence here to check mistakes..."
+                          placeholder="Speak hands-free OR type your English sentence here..."
                           className="flex-1 px-4 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                         />
                         <button
                           type="submit"
                           disabled={loading || !userInput.trim()}
-                          className="px-5 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                          className="px-5 py-4 rounded-2xl bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shrink-0"
                         >
                           {loading ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : (
                             <Send className="w-4 h-4" />
                           )}
-                          <span>Check</span>
+                          <span>Send</span>
                         </button>
                       </form>
                     </div>
 
                     {interimTranscript && (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-xs font-bold text-amber-900 dark:text-amber-200">
-                        🎙️ Live Voice Captured: &ldquo;{interimTranscript}&rdquo;
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-400 dark:border-emerald-700 text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2">
+                        <span>🎙️ Hearing You Live: &ldquo;{interimTranscript}&rdquo;</span>
+                        <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
+                          Auto-Sending on Pause...
+                        </span>
                       </div>
                     )}
 
@@ -1491,10 +2101,10 @@ export default function LiveAITalkingAgentPage() {
                     )}
                   </div>
 
-                  {/* Quick One-Click Sample Sentences to Test Ghlt Fikra -> Sahi Fikra */}
+                  {/* Quick One-Click Sample Sentences */}
                   <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                      ⚡ Try Speaking or Clicking a Sample Sentence (See How Sophia Fixes Mistakes):
+                      ⚡ Or Click Any Sample Sentence Below to Test Sophia&apos;s Live Voice & Correction Cards:
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {QUICK_TEST_SENTENCES.map((sample, idx) => (
@@ -1519,7 +2129,6 @@ export default function LiveAITalkingAgentPage() {
                  ===================================================================== */}
               {latestTurn && (
                 <div className="space-y-6">
-                  {/* SECTION HEADER */}
                   <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                     <div className="flex items-center gap-2.5">
                       <Award className="w-6 h-6 text-blue-700 dark:text-blue-400" />
@@ -1528,7 +2137,7 @@ export default function LiveAITalkingAgentPage() {
                       </h2>
                     </div>
                     <span className="text-xs font-extrabold text-slate-500">
-                      Explicating in {selectedLangObj.flag} {selectedLangObj.nativeName} ({selectedLangObj.name})
+                      Explained in {selectedLangObj.flag} {selectedLangObj.nativeName} ({selectedLangObj.name})
                     </span>
                   </div>
 
@@ -1605,7 +2214,8 @@ export default function LiveAITalkingAgentPage() {
                           onClick={() =>
                             speakWithAvatarLipSync(
                               latestTurn.correctedEnglishSentence,
-                              0.95
+                              1.0,
+                              false
                             )
                           }
                           className="flex-1 py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
@@ -1618,12 +2228,13 @@ export default function LiveAITalkingAgentPage() {
                           onClick={() =>
                             speakWithAvatarLipSync(
                               latestTurn.correctedEnglishSentence,
-                              0.68
+                              0.75,
+                              false
                             )
                           }
                           className="py-2.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-xs font-black cursor-pointer"
                         >
-                          🐢 Slow (0.68x)
+                          🐢 Slow (0.75x)
                         </button>
                       </div>
                     </div>
@@ -1652,7 +2263,8 @@ export default function LiveAITalkingAgentPage() {
                           onClick={() =>
                             speakWithAvatarLipSync(
                               latestTurn.advancedAlternativeSentence,
-                              0.92
+                              0.95,
+                              false
                             )
                           }
                           className="w-full py-2.5 px-3.5 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
@@ -1664,7 +2276,7 @@ export default function LiveAITalkingAgentPage() {
                     </div>
                   </div>
 
-                  {/* CARD ROW 2: DETAILED NATIVE LANGUAGE EXPLANATION (AAPKI ZUBAN ME WAZAHAT) */}
+                  {/* CARD ROW 2: DETAILED NATIVE LANGUAGE EXPLANATION */}
                   <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-blue-300 dark:border-blue-800 shadow-lg space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
                       <div className="flex items-center gap-2.5">
@@ -1684,7 +2296,6 @@ export default function LiveAITalkingAgentPage() {
                       </span>
                     </div>
 
-                    {/* Native Language Explanation with Crisp, High-Readability Font */}
                     <div
                       dir={isRtlLang ? 'rtl' : 'ltr'}
                       className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 space-y-3"
@@ -1692,10 +2303,7 @@ export default function LiveAITalkingAgentPage() {
                       <p className="text-base sm:text-xl font-bold text-slate-900 dark:text-white leading-loose">
                         {latestTurn.nativeLanguageGreetingOrFeedback}
                       </p>
-                      <p className="text-sm sm:text-lg font-semibold text-blue-900 dark:text-blue-200 leading-relaxed">
-                        💡 {latestTurn.mistakeExplanationInNative}
-                      </p>
-                      <p className="text-xs sm:text-sm font-extrabold text-emerald-700 dark:text-emerald-400 pt-1">
+                      <p className="text-sm sm:text-lg font-extrabold text-emerald-700 dark:text-emerald-400 pt-1">
                         🌟 {latestTurn.encouragementInNative}
                       </p>
                     </div>
@@ -1745,7 +2353,8 @@ export default function LiveAITalkingAgentPage() {
                                 onClick={() =>
                                   speakWithAvatarLipSync(
                                     `${vc.word}. ${vc.example}`,
-                                    0.88
+                                    0.92,
+                                    false
                                   )
                                 }
                                 className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white dark:bg-slate-800 dark:hover:bg-blue-600 text-xs font-black text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
@@ -1769,7 +2378,14 @@ export default function LiveAITalkingAgentPage() {
                         </h3>
                         <button
                           type="button"
-                          onClick={() => startLiveAgentSession(nativeLanguage, learnerLevel)}
+                          onClick={() =>
+                            startLiveAgentSession(
+                              nativeLanguage,
+                              learnerLevel,
+                              sessionMode,
+                              roleplayScenario
+                            )
+                          }
                           className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
                         >
                           Reset Session
@@ -1796,7 +2412,11 @@ export default function LiveAITalkingAgentPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  speakWithAvatarLipSync(t.correctedEnglishSentence, 0.9)
+                                  speakWithAvatarLipSync(
+                                    t.correctedEnglishSentence,
+                                    0.95,
+                                    false
+                                  )
                                 }
                                 className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-black flex items-center gap-1.5 self-start sm:self-center cursor-pointer"
                               >
