@@ -303,6 +303,7 @@ export default function LiveAITalkingAgentPage() {
 
   // Speech Recognition (Hands-Free Mic) & Audio Element Refs
   const [isListening, setIsListening] = useState<boolean>(false);
+  const [callEnded, setCallEnded] = useState<boolean>(false);
   const [synthesizingVoice, setSynthesizingVoice] = useState<boolean>(false);
   const [callSeconds, setCallSeconds] = useState<number>(0);
   const [interimTranscript, setInterimTranscript] = useState<string>('');
@@ -377,17 +378,17 @@ export default function LiveAITalkingAgentPage() {
     return () => clearInterval(blinkLoop);
   }, []);
 
-  // Live Call Timer when inside studio
+  // Live Call Timer when inside studio and call not ended
   useEffect(() => {
-    if (!setupCompleted) {
-      setCallSeconds(0);
+    if (!setupCompleted || callEnded) {
+      if (!setupCompleted) setCallSeconds(0);
       return;
     }
     const timer = setInterval(() => {
       setCallSeconds((s) => s + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [setupCompleted]);
+  }, [setupCompleted, callEnded]);
 
   // Stop all audio & lip-sync cleanly
   const stopAllVoiceAndLipSync = useCallback(() => {
@@ -894,6 +895,9 @@ export default function LiveAITalkingAgentPage() {
       }
     } catch {}
 
+    setCallEnded(false);
+    setHandsFreeAutoMic(true);
+    handsFreeRef.current = true;
     setSetupCompleted(true);
     setLoading(true);
     stopAllVoiceAndLipSync();
@@ -1083,10 +1087,31 @@ export default function LiveAITalkingAgentPage() {
       return;
     }
 
+    setCallEnded(false);
     stopAllVoiceAndLipSync();
     setHandsFreeAutoMic(true);
     handsFreeRef.current = true;
     startHandsFreeListening();
+  };
+
+  // End Live Call cleanly without erasing correction cards
+  const endLiveCall = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    setHandsFreeAutoMic(false);
+    handsFreeRef.current = false;
+    setSynthesizingVoice(false);
+    stopAllVoiceAndLipSync();
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.abort();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setCallEnded(true);
   };
 
   const selectedLangObj = getBaseLanguageInfo(nativeLanguage);
@@ -1576,41 +1601,63 @@ export default function LiveAITalkingAgentPage() {
                     })}
                   </div>
 
-                  {/* Hands-Free Auto-Mic Call Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !handsFreeAutoMic;
-                      setHandsFreeAutoMic(next);
-                      handsFreeRef.current = next;
-                      if (!next && recognitionRef.current) {
-                        try {
-                          recognitionRef.current.onend = null;
-                          recognitionRef.current.stop();
-                        } catch {}
-                        setIsListening(false);
-                      } else if (next && !isSpeakingRef.current) {
-                        startHandsFreeListening();
-                      }
-                    }}
-                    className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 cursor-pointer border transition-all ${
-                      handsFreeAutoMic
-                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
-                    }`}
-                  >
-                    {handsFreeAutoMic ? (
-                      <>
-                        <PhoneCall className="w-3.5 h-3.5 animate-pulse" />
-                        <span>🟢 Hands-Free Auto-Mic: ON (No Need to Click Mic)</span>
-                      </>
-                    ) : (
-                      <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Hands-Free Auto-Mic Call Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (callEnded) {
+                          setCallEnded(false);
+                          setHandsFreeAutoMic(true);
+                          handsFreeRef.current = true;
+                          startHandsFreeListening();
+                          return;
+                        }
+                        const next = !handsFreeAutoMic;
+                        setHandsFreeAutoMic(next);
+                        handsFreeRef.current = next;
+                        if (!next && recognitionRef.current) {
+                          try {
+                            recognitionRef.current.onresult = null;
+                            recognitionRef.current.onend = null;
+                            recognitionRef.current.abort();
+                          } catch {}
+                          setIsListening(false);
+                        } else if (next && !isSpeakingRef.current) {
+                          startHandsFreeListening();
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 cursor-pointer border transition-all ${
+                        handsFreeAutoMic && !callEnded
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                      }`}
+                    >
+                      {handsFreeAutoMic && !callEnded ? (
+                        <>
+                          <PhoneCall className="w-3.5 h-3.5 animate-pulse" />
+                          <span>🟢 Auto-Mic: ON</span>
+                        </>
+                      ) : (
+                        <>
+                          <PhoneCall className="w-3.5 h-3.5" />
+                          <span>{callEnded ? 'Resume Call' : 'Auto-Mic: Paused'}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Red End Call Button */}
+                    {!callEnded && (
+                      <button
+                        type="button"
+                        onClick={endLiveCall}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                      >
                         <PhoneOff className="w-3.5 h-3.5" />
-                        <span>Hands-Free Auto-Mic: Paused</span>
-                      </>
+                        <span>End Call</span>
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
 
                 {/* Roleplay Scenario Pills if in Roleplay Mode */}
@@ -1659,25 +1706,29 @@ export default function LiveAITalkingAgentPage() {
                     <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-white/15">
                       <span
                         className={`w-2.5 h-2.5 rounded-full ${
-                          synthesizingVoice || loading
-                            ? 'bg-amber-400 animate-pulse'
-                            : isSpeaking
-                              ? 'bg-emerald-400 animate-ping'
-                              : isListening
-                                ? 'bg-rose-500 animate-ping'
-                                : 'bg-emerald-400'
+                          callEnded
+                            ? 'bg-slate-400'
+                            : synthesizingVoice || loading
+                              ? 'bg-amber-400 animate-pulse'
+                              : isSpeaking
+                                ? 'bg-emerald-400 animate-ping'
+                                : isListening
+                                  ? 'bg-rose-500 animate-ping'
+                                  : 'bg-emerald-400'
                         }`}
                       />
                       <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-                        {loading
-                          ? '🧠 Thinking...'
-                          : synthesizingVoice
-                            ? `🎙️ Loading Gemini Voice (${geminiVoice})...`
-                            : isSpeaking
-                              ? `🗣️ Speaking (${geminiVoice})`
-                              : isListening
-                                ? '🎙️ Listening — Speak Now!'
-                                : `🟢 Call Live • ${String(Math.floor(callSeconds / 60)).padStart(2, '0')}:${String(callSeconds % 60).padStart(2, '0')}`}
+                        {callEnded
+                          ? `📞 Call Ended (${String(Math.floor(callSeconds / 60)).padStart(2, '0')}:${String(callSeconds % 60).padStart(2, '0')})`
+                          : loading
+                            ? '🧠 Thinking...'
+                            : synthesizingVoice
+                              ? `🎙️ Loading Gemini Voice (${geminiVoice})...`
+                              : isSpeaking
+                                ? `🗣️ Speaking (${geminiVoice})`
+                                : isListening
+                                  ? '🎙️ Listening — Speak Now!'
+                                  : `🟢 Call Live • ${String(Math.floor(callSeconds / 60)).padStart(2, '0')}:${String(callSeconds % 60).padStart(2, '0')}`}
                       </span>
                     </div>
 
@@ -2061,7 +2112,28 @@ export default function LiveAITalkingAgentPage() {
                           }
                           className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all"
                         >
-                          <span>🐢 Slow (0.75x)</span>
+                          <span>🐢 Slow</span>
+                        </button>
+                      )}
+
+                      {!callEnded ? (
+                        <button
+                          type="button"
+                          onClick={endLiveCall}
+                          className="py-2.5 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all"
+                          title="End Live Voice Call"
+                        >
+                          <PhoneOff className="w-4 h-4" />
+                          <span>End Call</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={toggleMicrophoneOrHandsFree}
+                          className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all"
+                        >
+                          <PhoneCall className="w-4 h-4" />
+                          <span>Resume Call</span>
                         </button>
                       )}
                     </div>
@@ -2069,10 +2141,10 @@ export default function LiveAITalkingAgentPage() {
                 </div>
 
                 {/* RIGHT 7 COLS: HANDS-FREE CALL STATUS + SPEAKING PROMPT + INPUT */}
-                <div className="lg:col-span-7 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-xl p-5 sm:p-7 flex flex-col justify-between space-y-5">
+                <div className="lg:col-span-7 min-w-0 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-xl p-5 sm:p-7 flex flex-col justify-between space-y-5">
                   {/* Top Fluency & Grammar Score Meters */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-[11px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-400">
                         {sessionMode === 'roleplay'
                           ? `🎭 Live Roleplay: ${selectedRoleplayObj.emoji} ${selectedRoleplayObj.title}`
@@ -2081,11 +2153,13 @@ export default function LiveAITalkingAgentPage() {
                             : '👩‍🏫 Live English Teacher & Mistake Fixer'}
                       </span>
                       <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                        {isListening
-                          ? '🎙️ Listening Automatically — Speak in English Now!'
-                          : isSpeaking
-                            ? '🔊 Sophia is Speaking — Mic Will Auto-Open Next...'
-                            : 'Speak Hands-Free or Type Below'}
+                        {callEnded
+                          ? '📞 Call Ended — Review Corrections Below'
+                          : isListening
+                            ? '🎙️ Listening Automatically — Speak in English Now!'
+                            : isSpeaking
+                              ? '🔊 Sophia is Speaking — Mic Will Auto-Open Next...'
+                              : 'Speak Hands-Free or Type Below'}
                       </h2>
                     </div>
 
@@ -2159,60 +2233,75 @@ export default function LiveAITalkingAgentPage() {
                     </div>
                   )}
 
-                  {/* Hands-Free Live Mic Indicator + Text Input Bar */}
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {/* Hands-Free Live Mic + End Call + Contained Text Input Bar */}
+                  <div className="space-y-3 min-w-0 w-full">
+                    {/* Row 1: Mic Toggle + Red End Call Button */}
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <button
                         type="button"
                         onClick={toggleMicrophoneOrHandsFree}
                         disabled={loading}
-                        className={`px-6 py-4 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2.5 cursor-pointer transition-all shrink-0 ${
+                        className={`flex-1 min-w-[200px] px-5 py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
                           isListening
-                            ? 'bg-rose-600 text-white shadow-[0_0_25px_rgba(225,29,72,0.6)] animate-pulse'
-                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md'
+                            ? 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.45)] animate-pulse'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md'
                         }`}
                       >
                         {isListening ? (
                           <>
-                            <Mic className="w-5 h-5 animate-bounce" />
-                            <span>🎙️ Live Call Mic ON (Tap to Send Now)</span>
+                            <Mic className="w-4 h-4 animate-bounce shrink-0" />
+                            <span>🎙️ Live Mic ON (Tap to Send Now)</span>
                           </>
                         ) : (
                           <>
-                            <Mic className="w-5 h-5" />
-                            <span>🎙️ Resume Hands-Free Mic</span>
+                            <PhoneCall className="w-4 h-4 shrink-0" />
+                            <span>
+                              {callEnded ? '📞 Start Call Again' : '🎙️ Resume Live Mic'}
+                            </span>
                           </>
                         )}
                       </button>
 
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          sendSentenceToLiveAgent();
-                        }}
-                        className="flex-1 flex items-center gap-2"
-                      >
-                        <input
-                          type="text"
-                          value={userInput}
-                          onChange={(e) => setUserInput(e.target.value)}
-                          placeholder="Speak hands-free OR type your English sentence here..."
-                          className="flex-1 px-4 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
-                        />
+                      {!callEnded && (
                         <button
-                          type="submit"
-                          disabled={loading || !userInput.trim()}
-                          className="px-5 py-4 rounded-2xl bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                          type="button"
+                          onClick={endLiveCall}
+                          className="px-5 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md shrink-0 transition-all"
                         >
-                          {loading ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                          <span>Send</span>
+                          <PhoneOff className="w-4 h-4" />
+                          <span>End Call</span>
                         </button>
-                      </form>
+                      )}
                     </div>
+
+                    {/* Row 2: Full-Width Contained Text Input + Send Button (Never Overflows Box!) */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        sendSentenceToLiveAgent();
+                      }}
+                      className="w-full min-w-0 flex items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        placeholder="Speak on live call OR type your English sentence here..."
+                        className="flex-1 min-w-0 w-full px-4 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
+                      />
+                      <button
+                        type="submit"
+                        disabled={loading || !userInput.trim()}
+                        className="px-5 py-3.5 rounded-2xl bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        {loading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                        <span>Send</span>
+                      </button>
+                    </form>
 
                     {interimTranscript && (
                       <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-400 dark:border-emerald-700 text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-2">
