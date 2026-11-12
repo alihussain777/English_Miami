@@ -28,17 +28,39 @@ export default function PricingPage() {
 
   // Regional Pricing & Discount State controlled by Admin Panel
   const [regionalTiers, setRegionalTiers] = useState<RegionalPricingTier[]>([]);
-  const [selectedTierId, setSelectedTierId] = useState<string>('us-eu');
+  const [selectedTierId, setSelectedTierId] = useState<string>('pk');
   const [globalDiscountActive, setGlobalDiscountActive] = useState<boolean>(true);
   const [globalDiscountBanner, setGlobalDiscountBanner] = useState<string>('');
+  const [ipGeoStatus, setIpGeoStatus] = useState<{
+    countryName: string;
+    countryCode: string;
+    ip: string;
+    autoDetected: boolean;
+  }>({
+    countryName: 'Detecting via IP...',
+    countryCode: '',
+    ip: '',
+    autoDetected: false,
+  });
 
   useEffect(() => {
+    const mapCodeToTier = (code: string, tiersList: RegionalPricingTier[]) => {
+      const c = (code || '').toUpperCase().trim();
+      if (c === 'PK' && tiersList.some((t) => t.id === 'pk')) return 'pk';
+      if (['PK', 'IN', 'BD', 'NP', 'LK'].includes(c)) {
+        return c === 'PK' ? 'pk' : 'south-asia';
+      }
+      if (['MX', 'BR', 'CO', 'AR', 'CL', 'PE'].includes(c)) return 'latam';
+      if (['AE', 'SA', 'QA', 'KW', 'TR', 'JP', 'KR'].includes(c)) return 'mena-asia';
+      return 'us-eu';
+    };
+
     Promise.all([
-      fetch('/api/subscriptions').then((r) => r.json()),
-      fetch('/api/auth/me').then((r) => r.json()),
-      fetch('/api/pricing').then((r) => r.json()),
+      fetch('/api/subscriptions').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/auth/me').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/pricing').then((r) => r.json()).catch(() => ({})),
     ])
-      .then(([subData, authData, priceData]) => {
+      .then(async ([subData, authData, priceData]) => {
         if (subData.currentSubscription) setSubscription(subData.currentSubscription);
         if (subData.paymentHistory) setPayments(subData.paymentHistory);
 
@@ -47,17 +69,53 @@ export default function PricingPage() {
         setGlobalDiscountActive(priceData.globalDiscountActive ?? true);
         setGlobalDiscountBanner(priceData.globalDiscountBanner || '');
 
-        let detectedTier = 'us-eu';
-        try {
-          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-          if (/Karachi|Calcutta|Kolkata|Dhaka|Colombo|Kathmandu/i.test(tz)) {
-            detectedTier = 'south-asia';
-          } else if (/Mexico|Bogota|Sao_Paulo|Buenos_Aires|Lima|Santiago/i.test(tz)) {
-            detectedTier = 'latam';
-          } else if (/Dubai|Riyadh|Istanbul|Tokyo|Seoul/i.test(tz)) {
-            detectedTier = 'mena-asia';
+        let detectedTier = priceData.detectedTierId || '';
+        let detectedCountryName = priceData.detectedCountryName || '';
+        let detectedCountryCode = priceData.detectedCountryCode || '';
+        let detectedIp = priceData.detectedIp || '';
+
+        // Fast Client-Side IP Geo Detection (so visitor's real public IP is checked directly)
+        if (!detectedCountryCode) {
+          try {
+            const ipRes = await fetch('https://ipwho.is/');
+            if (ipRes.ok) {
+              const ipJson = await ipRes.json();
+              if (ipJson && ipJson.country_code) {
+                detectedCountryCode = String(ipJson.country_code).toUpperCase();
+                detectedCountryName = String(ipJson.country || '');
+                detectedIp = String(ipJson.ip || '');
+                detectedTier = mapCodeToTier(detectedCountryCode, tiers);
+              }
+            }
+          } catch {}
+        }
+
+        // Timezone fallback if IP API is blocked by adblocker
+        if (!detectedTier) {
+          try {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            if (/Karachi/i.test(tz)) {
+              detectedTier = tiers.some((t) => t.id === 'pk') ? 'pk' : 'south-asia';
+              detectedCountryName = 'Pakistan';
+              detectedCountryCode = 'PK';
+            } else if (/Calcutta|Kolkata|Dhaka|Colombo|Kathmandu/i.test(tz)) {
+              detectedTier = 'south-asia';
+              detectedCountryName = 'South Asia';
+              detectedCountryCode = 'IN';
+            } else if (/Mexico|Bogota|Sao_Paulo|Buenos_Aires|Lima|Santiago/i.test(tz)) {
+              detectedTier = 'latam';
+              detectedCountryName = 'Latin America';
+            } else if (/Dubai|Riyadh|Istanbul|Tokyo|Seoul/i.test(tz)) {
+              detectedTier = 'mena-asia';
+              detectedCountryName = 'Middle East & Asia';
+            } else {
+              detectedTier = 'us-eu';
+              detectedCountryName = 'United States & Europe';
+            }
+          } catch {
+            detectedTier = 'pk';
           }
-        } catch {}
+        }
 
         if (authData.authenticated && authData.user) {
           setSession({
@@ -69,15 +127,15 @@ export default function PricingPage() {
             plan: authData.user.subscription?.plan || 'FREE',
             onboardingCompleted: true,
           });
-          const c = (authData.user.profile?.country || '').toLowerCase();
-          if (/india|pakistan|bangladesh|nepal|sri lanka/.test(c)) {
-            detectedTier = 'south-asia';
-          } else if (/mexico|brazil|colombia|argentina|chile|peru/.test(c)) {
-            detectedTier = 'latam';
-          }
         }
 
-        setSelectedTierId(detectedTier);
+        setIpGeoStatus({
+          countryName: detectedCountryName || 'Pakistan',
+          countryCode: detectedCountryCode || 'PK',
+          ip: detectedIp,
+          autoDetected: true,
+        });
+        setSelectedTierId(detectedTier || 'pk');
       })
       .catch(() => {});
   }, []);
@@ -184,12 +242,24 @@ export default function PricingPage() {
               Localized pricing adjusted for your region with full access to 23-language Duolingo paths, Speaking Lab, Wikipedia Study Cards, and CEFR Certificates.
             </p>
 
+            {/* Live IP Country Auto-Detection Badge */}
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs font-extrabold text-blue-800 dark:text-blue-300">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                📍 IP Auto-Detected Location:{' '}
+                <strong className="font-black text-slate-900 dark:text-white">
+                  {activeTier.flag} {ipGeoStatus.countryName || activeTier.regionName}
+                </strong>
+                {ipGeoStatus.ip ? ` (IP: ${ipGeoStatus.ip})` : ''} — Showing Admin Regional Rate ({activeTier.currencySymbol}{activeTier.monthlyProPrice}/mo)
+              </span>
+            </div>
+
             {/* Region Selector Bar */}
             {regionalTiers.length > 0 && (
               <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
                 <span className="text-xs font-extrabold text-slate-500 flex items-center gap-1 mr-1">
                   <Globe className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Visitor Region:</span>
+                  <span>Country / Region Plan:</span>
                 </span>
                 {regionalTiers.map((tier) => (
                   <button

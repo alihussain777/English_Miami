@@ -72,10 +72,25 @@ const DEFAULT_SITE_CONFIG: SiteConfigData = {
       active: true,
     },
     {
+      id: 'pk',
+      regionName: 'Pakistan',
+      countriesLabel: 'Pakistan (Karachi, Lahore, Islamabad, Rawalpindi, All PK)',
+      flag: '🇵🇰',
+      currencySymbol: '$',
+      currencyCode: 'USD',
+      monthlyProPrice: 5,
+      annualProMonthlyPrice: 3,
+      annualProTotal: 36,
+      discountPercent: 60,
+      promoCode: 'PAKISTAN60',
+      promoBannerText: '🇵🇰 60% Special Pakistan Scholarship Rate Applied Automatically via IP!',
+      active: true,
+    },
+    {
       id: 'south-asia',
-      regionName: 'India, Pakistan & South Asia',
-      countriesLabel: 'India, Pakistan, Bangladesh, Nepal, Sri Lanka',
-      flag: '🇮🇳🇵🇰',
+      regionName: 'India, Bangladesh & South Asia',
+      countriesLabel: 'India, Bangladesh, Nepal, Sri Lanka',
+      flag: '🇮🇳🇧🇩',
       currencySymbol: '$',
       currencyCode: 'USD',
       monthlyProPrice: 6,
@@ -240,12 +255,22 @@ export function readSiteConfig(): SiteConfigData {
     }
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = JSON.parse(raw);
+    let mergedRegionalPricing: RegionalPricingTier[] = parsed.regionalPricing?.length
+      ? parsed.regionalPricing
+      : DEFAULT_SITE_CONFIG.regionalPricing;
+
+    // Ensure dedicated 'pk' (Pakistan) tier exists even if site-config.json was created earlier
+    if (!mergedRegionalPricing.some((t) => t.id === 'pk')) {
+      const pkDefault = DEFAULT_SITE_CONFIG.regionalPricing.find((t) => t.id === 'pk');
+      if (pkDefault) {
+        mergedRegionalPricing = [pkDefault, ...mergedRegionalPricing];
+      }
+    }
+
     return {
       ...DEFAULT_SITE_CONFIG,
       ...parsed,
-      regionalPricing: parsed.regionalPricing?.length
-        ? parsed.regionalPricing
-        : DEFAULT_SITE_CONFIG.regionalPricing,
+      regionalPricing: mergedRegionalPricing,
       notifications: parsed.notifications || DEFAULT_SITE_CONFIG.notifications,
       blogs: parsed.blogs?.length ? parsed.blogs : DEFAULT_SITE_CONFIG.blogs,
     };

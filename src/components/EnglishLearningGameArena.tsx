@@ -22,6 +22,7 @@ import {
   Swords,
   Anchor,
   Sparkles,
+  Keyboard,
 } from 'lucide-react';
 import {
   playSuccessSound,
@@ -35,6 +36,7 @@ import {
 import { speakRealisticText } from '@/lib/voice-engine';
 
 type GameMode =
+  | 'typing'
   | 'sniper'
   | 'bomb'
   | 'fighter'
@@ -43,6 +45,69 @@ type GameMode =
   | 'zombie'
   | 'shark'
   | 'racer';
+
+// ============================================================================
+// 0. ⌨️ MIAMI SPEED TYPING TEST & WPM MASTER (BASIC, MID & ADVANCED)
+// ============================================================================
+interface TypingPassage {
+  id: string;
+  level: 'basic' | 'mid' | 'advanced';
+  levelBadge: string;
+  title: string;
+  text: string;
+  tip: string;
+}
+
+const TYPING_PASSAGES: TypingPassage[] = [
+  {
+    id: 'typ-b1',
+    level: 'basic',
+    levelBadge: '🌱 Basic (A0–A1)',
+    title: 'Morning Coffee in Miami',
+    text: 'Good morning! My name is Ali and I live in a sunny city. Every day I drink hot coffee, read a book, and practice speaking English with my friends.',
+    tip: 'Focus on typing common present-tense verbs like "live", "drink", "read", and "practice" smoothly.',
+  },
+  {
+    id: 'typ-b2',
+    level: 'basic',
+    levelBadge: '🌱 Basic (A0–A1)',
+    title: 'At the International Airport',
+    text: 'Excuse me, where is the boarding gate for flight two hundred? Here is my passport and my ticket. Thank you very much for your kind help today.',
+    tip: 'Polite travel phrases build automatic muscle memory for both speaking and writing.',
+  },
+  {
+    id: 'typ-m1',
+    level: 'mid',
+    levelBadge: '🚀 Mid (A2–B1)',
+    title: 'Preparing for a Career Interview',
+    text: 'Over the past two years, I have worked on several international projects. Collaborating with diverse teams taught me how to solve complex problems under tight deadlines.',
+    tip: 'Notice how Present Perfect ("I have worked") connects past experience to your present career.',
+  },
+  {
+    id: 'typ-m2',
+    level: 'mid',
+    levelBadge: '🚀 Mid (A2–B1)',
+    title: 'Healthy Daily Habits',
+    text: 'Although modern life can be extremely busy, taking thirty minutes to exercise and read every morning dramatically improves your focus, confidence, and mental clarity.',
+    tip: 'Using transition words like "Although" and adverbs like "dramatically" elevates your B1/B2 writing score.',
+  },
+  {
+    id: 'typ-a1',
+    level: 'advanced',
+    levelBadge: '👑 Advanced (B2–C2)',
+    title: 'Executive Leadership & Innovation',
+    text: 'Effective communication is not merely about articulating complex ideas; rather, it requires active listening, cultural empathy, and the ability to inspire decisive action across global organizations.',
+    tip: 'Master high-impact C1/C2 vocabulary: "articulating", "empathy", and "decisive action".',
+  },
+  {
+    id: 'typ-a2',
+    level: 'advanced',
+    levelBadge: '👑 Advanced (B2–C2)',
+    title: 'Artificial Intelligence & Education',
+    text: 'By combining personalized diagnostic feedback with interactive real-time conversation, artificial intelligence empowers language learners to overcome hesitation and achieve authentic fluency.',
+    tip: 'Notice the parallel structure and academic precision in this advanced C2 passage.',
+  },
+];
 
 // ============================================================================
 // 1. 🎯 SNIPER SCOPE: MOVING TARGET SHOOTER (REAL AIM & RELOAD FIRING GAME)
@@ -841,6 +906,99 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
   const [bananaSpin, setBananaSpin] = useState(false);
   const currentRacer = RACER_CHALLENGES[racerIdx % RACER_CHALLENGES.length];
 
+  // ==========================================================================
+  // GAME 9: ⌨️ MIAMI SPEED TYPING TEST & WPM MASTER
+  // ==========================================================================
+  const [typingLevelFilter, setTypingLevelFilter] = useState<'all' | 'basic' | 'mid' | 'advanced'>('all');
+  const [typingPassageIdx, setTypingPassageIdx] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const [typingDuration, setTypingDuration] = useState<30 | 60>(60);
+  const [typingTimeLeft, setTypingTimeLeft] = useState<number>(60);
+  const [typingStartedAt, setTypingStartedAt] = useState<number | null>(null);
+  const [typingFinished, setTypingFinished] = useState<boolean>(false);
+  const typingInputRef = useRef<HTMLInputElement | null>(null);
+
+  const filteredTypingPassages =
+    typingLevelFilter === 'all'
+      ? TYPING_PASSAGES
+      : TYPING_PASSAGES.filter((p) => p.level === typingLevelFilter);
+  const currentTypingPassage =
+    filteredTypingPassages[typingPassageIdx % filteredTypingPassages.length] ||
+    TYPING_PASSAGES[0];
+
+  const resetTypingTest = useCallback(
+    (newDuration?: 30 | 60, nextPassage = false) => {
+      const dur = newDuration || typingDuration;
+      setTypedText('');
+      setTypingStartedAt(null);
+      setTypingFinished(false);
+      setTypingTimeLeft(dur);
+      if (nextPassage) {
+        setTypingPassageIdx((i) => i + 1);
+      }
+      setTimeout(() => {
+        typingInputRef.current?.focus();
+      }, 60);
+    },
+    [typingDuration]
+  );
+
+  useEffect(() => {
+    if (mode !== 'typing' || !typingStartedAt || typingFinished) return;
+    const timer = setInterval(() => {
+      setTypingTimeLeft((prev) => {
+        if (prev <= 1) {
+          setTypingFinished(true);
+          playFanfareSound();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [mode, typingStartedAt, typingFinished]);
+
+  const handleTypingChange = (val: string) => {
+    if (typingFinished) return;
+    const target = currentTypingPassage.text;
+    if (val.length > target.length) return;
+
+    if (!typingStartedAt && val.length > 0) {
+      setTypingStartedAt(Date.now());
+    }
+
+    setTypedText(val);
+
+    // Check if passage completed
+    if (val.length === target.length) {
+      setTypingFinished(true);
+      playFanfareSound();
+      confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+      awardPoints(
+        80,
+        true,
+        `⌨️ TYPING PASSAGE COMPLETED! Great speed & accuracy on "${currentTypingPassage.title}"!`,
+        currentTypingPassage.text
+      );
+    }
+  };
+
+  // Compute Live WPM & Accuracy
+  const correctCharsCount = typedText
+    .split('')
+    .filter((ch, i) => ch === currentTypingPassage.text[i]).length;
+  const typingAccuracy =
+    typedText.length > 0
+      ? Math.round((correctCharsCount / typedText.length) * 100)
+      : 100;
+  const elapsedMinutes = typingStartedAt
+    ? Math.max(0.05, (typingDuration - typingTimeLeft || 1) / 60)
+    : 0;
+  const liveWpm =
+    typingStartedAt && correctCharsCount > 0
+      ? Math.round(correctCharsCount / 5 / elapsedMinutes)
+      : 0;
+
   return (
     <section className="card-3d overflow-hidden border-2 border-indigo-500/80 dark:border-indigo-700 bg-white dark:bg-slate-900">
       {/* Top Arcade Header & Live Scoreboard */}
@@ -853,14 +1011,14 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                  ★ 8 Action & Funny Playable Games
+                  ★ 9 Action, Comedy & Speed Typing Games
                 </span>
                 <span className="text-xs font-bold text-emerald-300">
-                  Snipe Moving Targets, Defuse Bombs, Fight Bosses & Sink Pirate Ships!
+                  Speed Typing WPM Test, Sniper Scope, Bomb Defusal, Boss Boxing & Pirate Cannon!
                 </span>
               </div>
               <h2 className="text-xl sm:text-3xl font-black tracking-tight mt-1">
-                Miami English Action & Comedy Arcade
+                Miami English Action, Typing & Comedy Arcade
               </h2>
             </div>
           </div>
@@ -932,9 +1090,10 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
           </div>
         </div>
 
-        {/* 8 Playable Game Mode Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mt-5">
+        {/* 9 Playable Game Mode Tabs (Including Speed Typing Test!) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2 mt-5">
           {[
+            { id: 'typing', label: '⌨️ Typing Test', sub: 'Live WPM Speed', icon: Keyboard },
             { id: 'sniper', label: '🎯 Sniper Scope', sub: 'Moving Firing', icon: Crosshair },
             { id: 'bomb', label: '💣 Bomb Squad', sub: 'Cut the Wire!', icon: Scissors },
             { id: 'fighter', label: '🥊 Boss Knockout', sub: '1v1 Boxing', icon: Swords },
@@ -1004,6 +1163,189 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                 <span>Hear Audio</span>
               </button>
             )}
+          </div>
+        )}
+
+        {/* ===============================================================
+            GAME 0: ⌨️ MIAMI SPEED TYPING TEST & LIVE WPM MASTER
+           =============================================================== */}
+        {mode === 'typing' && (
+          <div className="space-y-5">
+            {/* Top Controls & Live WPM / Accuracy / Timer Dashboard */}
+            <div className="p-5 rounded-3xl bg-slate-900 text-white border-2 border-indigo-500/70 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+                    ⌨️ Miami Speed Typing & Fluency Lab • {currentTypingPassage.levelBadge}
+                  </span>
+                  <h3 className="text-lg sm:text-2xl font-black text-white mt-0.5">
+                    {currentTypingPassage.title}
+                  </h3>
+                </div>
+
+                {/* Level Filter + Timer Selector */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(['all', 'basic', 'mid', 'advanced'] as const).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => {
+                        setTypingLevelFilter(lvl);
+                        setTypingPassageIdx(0);
+                        resetTypingTest(typingDuration, false);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase cursor-pointer transition-all ${
+                        typingLevelFilter === lvl
+                          ? 'bg-amber-400 text-slate-950'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {lvl === 'all' ? 'All Levels' : lvl}
+                    </button>
+                  ))}
+
+                  <div className="h-5 w-px bg-slate-700 mx-1" />
+
+                  {([30, 60] as const).map((dur) => (
+                    <button
+                      key={dur}
+                      type="button"
+                      onClick={() => {
+                        setTypingDuration(dur);
+                        resetTypingTest(dur, false);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer ${
+                        typingDuration === dur
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      ⏱️ {dur}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4 Live Telemetry Meters: WPM, Accuracy, Time Left, Progress */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-indigo-500/40 text-center">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-indigo-300">
+                    ⚡ Speed (WPM)
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-0.5">
+                    {liveWpm} <span className="text-xs font-bold text-slate-400">WPM</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-emerald-500/40 text-center">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                    🎯 Accuracy
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-0.5">
+                    {typingAccuracy}%
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-rose-500/40 text-center">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-rose-300">
+                    ⏱️ Time Remaining
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white font-mono mt-0.5">
+                    {typingTimeLeft}s
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-blue-500/40 text-center">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-blue-300">
+                    📊 Completion
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-blue-400 mt-0.5">
+                    {Math.round(
+                      (typedText.length / currentTypingPassage.text.length) * 100
+                    )}
+                    %
+                  </div>
+                </div>
+              </div>
+
+              {/* Character-by-Character Live Highlighted Passage Display */}
+              <div
+                onClick={() => typingInputRef.current?.focus()}
+                className="p-5 sm:p-6 rounded-2xl bg-slate-950 border-2 border-slate-700 hover:border-amber-400/70 transition-all cursor-text font-mono text-base sm:text-xl leading-relaxed select-none"
+              >
+                {currentTypingPassage.text.split('').map((char, idx) => {
+                  const typedChar = typedText[idx];
+                  const isCurrentCursor = idx === typedText.length && !typingFinished;
+                  let colorClass = 'text-slate-500';
+                  if (typedChar !== undefined) {
+                    colorClass =
+                      typedChar === char
+                        ? 'text-emerald-400 bg-emerald-500/10'
+                        : 'text-rose-200 bg-rose-600/70 underline';
+                  }
+                  return (
+                    <span
+                      key={idx}
+                      className={`rounded-xs px-[1px] transition-colors ${colorClass} ${
+                        isCurrentCursor
+                          ? 'bg-amber-400 text-slate-950 font-black animate-pulse'
+                          : ''
+                      }`}
+                    >
+                      {char}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {/* Typing Input Box + Action Buttons */}
+              <div className="space-y-3">
+                <input
+                  ref={typingInputRef}
+                  type="text"
+                  value={typedText}
+                  disabled={typingFinished}
+                  onChange={(e) => handleTypingChange(e.target.value)}
+                  placeholder="⌨️ Click here and start typing the English passage above..."
+                  className="w-full px-5 py-4 rounded-2xl bg-slate-950 border-2 border-amber-400 text-white font-mono text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-amber-300"
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs font-bold text-blue-200">
+                    💡 {currentTypingPassage.tip}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        speakRealisticText(currentTypingPassage.text, { rate: 0.94 })
+                      }
+                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Listen to Passage</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => resetTypingTest(typingDuration, false)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-black cursor-pointer"
+                    >
+                      🔄 Restart Test
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => resetTypingTest(typingDuration, true)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer"
+                    >
+                      Next Passage →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

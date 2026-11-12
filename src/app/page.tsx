@@ -60,6 +60,20 @@ export default function HomePage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.regionalPricing) setPricingConfig(d);
+        if (d.detectedTierId) {
+          setSelectedRegionCode(d.detectedTierId);
+        }
+      })
+      .catch(() => {});
+
+    fetch('https://ipwho.is/')
+      .then((r) => r.json())
+      .then((geo) => {
+        const cc = String(geo?.country_code || '').toUpperCase();
+        if (cc === 'PK') setSelectedRegionCode('pk');
+        else if (['IN', 'BD', 'NP', 'LK'].includes(cc)) setSelectedRegionCode('south-asia');
+        else if (['MX', 'BR', 'CO', 'AR', 'CL', 'PE'].includes(cc)) setSelectedRegionCode('latam');
+        else if (['AE', 'SA', 'QA', 'KW', 'TR', 'JP', 'KR'].includes(cc)) setSelectedRegionCode('mena-asia');
       })
       .catch(() => {});
 
@@ -72,7 +86,9 @@ export default function HomePage() {
 
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      if (tz.includes('Karachi') || tz.includes('Kolkata') || tz.includes('Dhaka')) {
+      if (tz.includes('Karachi')) {
+        setSelectedRegionCode('pk');
+      } else if (tz.includes('Kolkata') || tz.includes('Dhaka')) {
         setSelectedRegionCode('south-asia');
       } else if (tz.includes('America/Sao_Paulo') || tz.includes('America/Mexico') || tz.includes('Bogota')) {
         setSelectedRegionCode('latam');

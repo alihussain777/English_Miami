@@ -166,11 +166,11 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <h3 className="font-black text-base text-slate-900 dark:text-white">English Games</h3>
                   <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-600 text-white">
-                    8 GAMES
+                    9 GAMES + TYPING
                   </span>
                 </div>
                 <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Play Sniper Scope Firing, Bomb Defusal Squad, Boss Knockout, Pirate Cannon & Shark Catcher!
+                  Play Speed Typing WPM Test, Sniper Scope Firing, Bomb Defusal, Boss Knockout & Pirate Cannon!
                 </p>
               </div>
               <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-5 group-hover:translate-x-1 transition-transform">
@@ -219,22 +219,27 @@ export default function DashboardPage() {
               </span>
             </Link>
 
-            {/* AI Coach */}
+            {/* Live AI Talking Agent */}
             <Link
               href="/ai-coach"
-              className="card-3d card-3d-interactive p-6 flex flex-col justify-between group"
+              className="card-3d card-3d-interactive p-6 bg-gradient-to-br from-indigo-50/90 to-white dark:from-indigo-950/35 dark:to-slate-900 border-2 border-indigo-400 dark:border-indigo-700 flex flex-col justify-between group"
             >
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-[0_4px_0_0_#3730a3] group-hover:scale-105 transition-transform">
                   <Brain className="w-6 h-6" />
                 </div>
-                <h3 className="font-black text-base text-slate-900 dark:text-white mb-1.5">Miami AI Coach</h3>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
-                  24/7 grammar feedback, job interview simulations, and natural roleplay dialogue.
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">Live AI Talking Agent</h3>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950">
+                    LIVE AVATAR
+                  </span>
+                </div>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Realistic lip-synced AI teacher in your native language with Ghlt vs. Sahi Fikra correction cards.
                 </p>
               </div>
               <span className="text-xs font-black text-indigo-700 dark:text-indigo-400 flex items-center gap-1 mt-5 group-hover:translate-x-1 transition-transform">
-                <span>Talk to Coach</span>
+                <span>Start Live Agent</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </Link>
