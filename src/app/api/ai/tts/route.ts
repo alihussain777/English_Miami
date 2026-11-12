@@ -107,9 +107,9 @@ export async function POST(req: NextRequest) {
     // =========================================================================
     if (activeApiKey) {
       const geminiTtsModels = [
+        'gemini-2.5-flash-preview-tts',
         'gemini-3.8-flash-tts',
         'gemini-3.8-flash-lite-tts',
-        'gemini-2.5-flash-preview-tts',
       ];
 
       for (const modelName of geminiTtsModels) {
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
               {
                 parts: [
                   {
-                    text: `Speak warmly, expressively, and naturally like a real friendly human English teacher on a voice call (say only the words below): ${cleanText}`,
+                    text: cleanText,
                   },
                 ],
               },

@@ -315,8 +315,18 @@ export default function LiveAITalkingAgentPage() {
   const animFrameRef = useRef<number | null>(null);
   const lastAgentSpokenRef = useRef<string>('');
   const audioCooldownUntilRef = useRef<number>(0);
+  const isSendingRef = useRef<boolean>(false);
+  const setupCompletedRef = useRef<boolean>(false);
+  const lastSentSignatureRef = useRef<{ text: string; at: number }>({
+    text: '',
+    at: 0,
+  });
   const sendSentenceRef = useRef<(text?: string) => Promise<void>>(async () => {});
   const startAutoMicRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    setupCompletedRef.current = setupCompleted;
+  }, [setupCompleted]);
 
   // Load user session & API key status
   useEffect(() => {
@@ -668,10 +678,23 @@ export default function LiveAITalkingAgentPage() {
   );
 
   // =========================================================================
-  // HANDS-FREE CONTINUOUS SPEECH RECOGNITION (NO REPEATED MIC CLICKS!)
+  // HANDS-FREE CONTINUOUS SPEECH RECOGNITION (SINGLE CLEAN TURN PER UTTERANCE)
   // =========================================================================
   const startHandsFreeListening = useCallback(() => {
-    if (isSpeakingRef.current || loading) return;
+    if (
+      !setupCompletedRef.current ||
+      isSpeakingRef.current ||
+      isSendingRef.current ||
+      loading
+    ) {
+      return;
+    }
+
+    if (Date.now() < audioCooldownUntilRef.current) {
+      const waitMs = Math.max(200, audioCooldownUntilRef.current - Date.now() + 80);
+      setTimeout(() => startAutoMicRef.current(), waitMs);
+      return;
+    }
 
     const SpeechRecognition =
       typeof window !== 'undefined'
@@ -688,9 +711,12 @@ export default function LiveAITalkingAgentPage() {
 
     if (recognitionRef.current) {
       try {
+        recognitionRef.current.onresult = null;
         recognitionRef.current.onend = null;
-        recognitionRef.current.stop();
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.abort();
       } catch {}
+      recognitionRef.current = null;
     }
 
     try {
@@ -704,16 +730,28 @@ export default function LiveAITalkingAgentPage() {
       let submitted = false;
 
       const submitCapturedSpeech = (textToSend: string) => {
-        if (submitted) return;
+        if (submitted || isSendingRef.current || isSpeakingRef.current) return;
         const cleaned = textToSend.trim();
         if (cleaned.length < 2) return;
 
         // Echo-shield: if SpeechRecognition accidentally picked up Sophia's own speaker audio, ignore and keep listening
-        const spokenWords = cleaned.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
-        const agentText = (lastAgentSpokenRef.current || '').replace(/[^a-z0-9\s]/g, '');
+        const spokenWords = cleaned
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '')
+          .split(/\s+/)
+          .filter(Boolean);
+        const agentText = (lastAgentSpokenRef.current || '').replace(
+          /[^a-z0-9\s]/g,
+          ''
+        );
         if (spokenWords.length >= 3 && agentText) {
-          const matchedWords = spokenWords.filter((w) => w.length > 2 && agentText.includes(w));
-          if (matchedWords.length / spokenWords.length >= 0.72 && agentText.includes(spokenWords.slice(0, 3).join(' '))) {
+          const matchedWords = spokenWords.filter(
+            (w) => w.length > 2 && agentText.includes(w)
+          );
+          if (
+            matchedWords.length / spokenWords.length >= 0.65 &&
+            agentText.includes(spokenWords.slice(0, 3).join(' '))
+          ) {
             accumulatedTranscript = '';
             setInterimTranscript('');
             setUserInput('');
@@ -721,12 +759,24 @@ export default function LiveAITalkingAgentPage() {
           }
         }
 
+        // Duplicate-turn shield: never re-send the same utterance within 8 seconds
+        const norm = cleaned.toLowerCase();
+        if (
+          lastSentSignatureRef.current.text === norm &&
+          Date.now() - lastSentSignatureRef.current.at < 8000
+        ) {
+          return;
+        }
+
         submitted = true;
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         try {
+          recognition.onresult = null;
           recognition.onend = null;
-          recognition.stop();
+          recognition.onerror = null;
+          recognition.abort();
         } catch {}
+        recognitionRef.current = null;
         setIsListening(false);
         sendSentenceRef.current(cleaned);
       };
@@ -737,12 +787,17 @@ export default function LiveAITalkingAgentPage() {
       };
 
       recognition.onresult = (event: any) => {
+        if (submitted || isSpeakingRef.current || isSendingRef.current) return;
+
         let interim = '';
         let finalPart = '';
+        let hasNewFinal = false;
+
         for (let i = 0; i < event.results.length; i++) {
           const t = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalPart += t + ' ';
+            hasNewFinal = true;
           } else {
             interim += t;
           }
@@ -751,12 +806,20 @@ export default function LiveAITalkingAgentPage() {
         setInterimTranscript(accumulatedTranscript);
         setUserInput(accumulatedTranscript);
 
-        // Reset 1.6-second silence timer after every word spoken!
+        // Clear any pending auto-send timer whenever user is still speaking!
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        if (accumulatedTranscript.split(/\s+/).length >= 2) {
+
+        // Only auto-send after a finalized phrase + natural 2.2s pause (so mid-thought pauses don't split messages!)
+        const wordCount = accumulatedTranscript.split(/\s+/).filter(Boolean).length;
+        if (hasNewFinal && !interim.trim() && wordCount >= 2) {
           silenceTimerRef.current = setTimeout(() => {
             submitCapturedSpeech(accumulatedTranscript);
-          }, 1600);
+          }, 2200);
+        } else if (wordCount >= 3) {
+          // Backup 3.2s pause timer if browser delays marking isFinal
+          silenceTimerRef.current = setTimeout(() => {
+            submitCapturedSpeech(accumulatedTranscript);
+          }, 3200);
         }
       };
 
@@ -773,19 +836,31 @@ export default function LiveAITalkingAgentPage() {
       recognition.onend = () => {
         setIsListening(false);
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        if (!submitted && accumulatedTranscript.trim().length > 1) {
+        if (
+          !submitted &&
+          !isSendingRef.current &&
+          !isSpeakingRef.current &&
+          accumulatedTranscript.trim().split(/\s+/).length >= 2
+        ) {
           submitCapturedSpeech(accumulatedTranscript);
         } else if (
           !submitted &&
+          setupCompletedRef.current &&
           handsFreeRef.current &&
-          !isSpeakingRef.current
+          !isSpeakingRef.current &&
+          !isSendingRef.current
         ) {
-          // Keep listening seamlessly in hands-free mode!
+          // Keep live call open silently without sending anything
           setTimeout(() => {
-            if (handsFreeRef.current && !isSpeakingRef.current) {
+            if (
+              setupCompletedRef.current &&
+              handsFreeRef.current &&
+              !isSpeakingRef.current &&
+              !isSendingRef.current
+            ) {
               startAutoMicRef.current();
             }
-          }, 400);
+          }, 600);
         }
       };
 
@@ -869,14 +944,23 @@ export default function LiveAITalkingAgentPage() {
   const sendSentenceToLiveAgent = useCallback(
     async (textToSubmit?: string) => {
       const cleanText = (textToSubmit ?? userInput).trim();
-      if (!cleanText || loading) return;
+      if (!cleanText || loading || isSendingRef.current) return;
+
+      isSendingRef.current = true;
+      lastSentSignatureRef.current = {
+        text: cleanText.toLowerCase(),
+        at: Date.now(),
+      };
 
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (recognitionRef.current) {
         try {
+          recognitionRef.current.onresult = null;
           recognitionRef.current.onend = null;
-          recognitionRef.current.stop();
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
         } catch {}
+        recognitionRef.current = null;
         setIsListening(false);
       }
 
@@ -932,6 +1016,7 @@ export default function LiveAITalkingAgentPage() {
       } catch (err) {
         console.error('Live Agent error:', err);
       } finally {
+        isSendingRef.current = false;
         setLoading(false);
       }
     },
@@ -2090,7 +2175,7 @@ export default function LiveAITalkingAgentPage() {
                         {isListening ? (
                           <>
                             <Mic className="w-5 h-5 animate-bounce" />
-                            <span>🎙️ Auto-Listening... (Pause 1.5s to Send)</span>
+                            <span>🎙️ Live Call Mic ON (Tap to Send Now)</span>
                           </>
                         ) : (
                           <>
@@ -2130,11 +2215,28 @@ export default function LiveAITalkingAgentPage() {
                     </div>
 
                     {interimTranscript && (
-                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-400 dark:border-emerald-700 text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2">
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-400 dark:border-emerald-700 text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-2">
                         <span>🎙️ Hearing You Live: &ldquo;{interimTranscript}&rdquo;</span>
-                        <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
-                          Auto-Sending on Pause...
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => sendSentenceToLiveAgent(interimTranscript)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black cursor-pointer"
+                          >
+                            Send Now ⚡
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                              setInterimTranscript('');
+                              setUserInput('');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-black cursor-pointer"
+                          >
+                            Clear ✕
+                          </button>
+                        </div>
                       </div>
                     )}
 
