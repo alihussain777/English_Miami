@@ -13,7 +13,7 @@ import {
   User,
   Tag,
 } from 'lucide-react';
-import { BlogPostItem } from '@/lib/site-config-store';
+import type { BlogPostItem } from '@/lib/site-config-store';
 
 export default function BlogDirectoryPage() {
   const [blogs, setBlogs] = useState<BlogPostItem[]>([]);

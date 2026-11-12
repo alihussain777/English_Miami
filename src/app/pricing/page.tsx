@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { playFanfareSound } from '@/lib/audio-feedback';
 import { SubscriptionPlan, UserSession } from '@/types';
-import { RegionalPricingTier } from '@/lib/site-config-store';
+import type { RegionalPricingTier } from '@/lib/site-config-store';
 
 export default function PricingPage() {
   const [session, setSession] = useState<UserSession | null>(null);

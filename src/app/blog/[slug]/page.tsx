@@ -1,30 +1,52 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
 import {
   ArrowLeft,
   Clock,
-  User,
   Compass,
   Tag,
-  Sparkles,
 } from 'lucide-react';
-import { BlogPostItem } from '@/lib/site-config-store';
 
-export default function SingleBlogPostPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = use(params);
+interface BlogPostItem {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  readTimeMinutes: number;
+  coverImage: string;
+  accentColor: 'blue' | 'emerald' | 'indigo' | 'amber';
+  authorName: string;
+  authorRole: string;
+  seoKeywords: string[];
+  contentHtml: string;
+  publishedAt: string;
+  featured: boolean;
+}
+
+export default function SingleBlogPostPage() {
+  const params = useParams();
+  const slug =
+    typeof params?.slug === 'string'
+      ? params.slug
+      : Array.isArray(params?.slug)
+        ? params.slug[0]
+        : '';
+
   const [blog, setBlog] = useState<BlogPostItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
     fetch(`/api/blogs?slug=${encodeURIComponent(slug)}`)
       .then((r) => r.json())
       .then((data) => {
@@ -60,12 +82,14 @@ export default function SingleBlogPostPage({
     );
   }
 
+  const plainTextForAudio = `${blog.title}. ${blog.excerpt}. ${blog.contentHtml.replace(/<[^>]+>/g, ' ')}`;
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
       <Navbar />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/blog"
             className="inline-flex items-center gap-2 text-xs font-extrabold text-slate-600 dark:text-slate-300 hover:text-blue-700"
@@ -75,7 +99,7 @@ export default function SingleBlogPostPage({
           </Link>
 
           <TextToSpeechButton
-            text={`${blog.title}. ${blog.excerpt}. ${blog.contentHtml}`}
+            text={plainTextForAudio}
             size="sm"
             showSpeedControl
           />
@@ -91,7 +115,7 @@ export default function SingleBlogPostPage({
             <img
               src="/images/brand/logo-tici.png"
               alt="TICI"
-              className="absolute top-4 right-4 w-9 h-9 object-contain drop-shadow-md"
+              className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-md"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent flex flex-col justify-end p-6 sm:p-10 text-white">
               <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -113,7 +137,7 @@ export default function SingleBlogPostPage({
             <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-900 text-white font-black flex items-center justify-center">
-                  {blog.authorName.charAt(0)}
+                  {(blog.authorName || 'J').charAt(0)}
                 </div>
                 <div>
                   <div className="font-black text-sm text-slate-900 dark:text-white">
@@ -125,7 +149,7 @@ export default function SingleBlogPostPage({
             </div>
 
             <div
-              className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 leading-relaxed space-y-4 text-sm sm:text-base"
+              className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 leading-relaxed space-y-4 text-sm sm:text-base [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 dark:[&_h2]:text-white [&_h2]:mt-6 [&_h3]:text-lg [&_h3]:font-extrabold [&_h3]:text-blue-700 dark:[&_h3]:text-blue-400 [&_h3]:mt-4 [&_p]:leading-relaxed"
               dangerouslySetInnerHTML={{ __html: blog.contentHtml }}
             />
 

@@ -38,7 +38,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { UserSession } from '@/types';
-import {
+import type {
   RegionalPricingTier,
   BroadcastNotification,
   BlogPostItem,

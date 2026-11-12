@@ -30,6 +30,7 @@ import {
   Maximize2,
   Clock,
   Tag,
+  LayoutDashboard,
 } from 'lucide-react';
 
 interface GalleryItem {
@@ -426,7 +427,7 @@ export default function HomePage() {
               </p>
 
               {/* Clean Tactile CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-3.5 pt-1 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3.5 pt-1 justify-center lg:justify-start">
                 <Link
                   href="/learn"
                   className="btn-3d-emerald w-full sm:w-auto text-sm sm:text-base font-extrabold px-7 py-3.5 rounded-2xl flex items-center justify-center gap-2 group"
@@ -434,6 +435,14 @@ export default function HomePage() {
                   <Play className="w-4 h-4 fill-white" />
                   <span>Start Learn Path</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <Link
+                  href="/dashboard"
+                  className="btn-3d-primary w-full sm:w-auto text-sm sm:text-base font-extrabold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
                 </Link>
 
                 <Link
