@@ -8,25 +8,34 @@ export default function Footer() {
       <div className="w-full max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
         {/* Brand & Mission */}
         <div className="md:col-span-2 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-900 flex items-center justify-center text-white shadow-sm">
-              <BookOpen className="w-5 h-5 text-blue-200" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 rounded-2xl crest-3d-badge flex items-center justify-center p-1.5 overflow-hidden">
+              <img
+                src="/images/brand/logo-tici.png"
+                alt="TICI • EnglishMiami Official Crest Logo"
+                className="w-11 h-11 object-contain drop-shadow-[0_2px_6px_rgba(255,255,255,0.35)]"
+              />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                EnglishMiami
-              </span>
-              <span className="text-[10px] font-semibold tracking-wider uppercase text-blue-800 dark:text-blue-400 -mt-1">
-                Global Academic Institute
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-900 text-amber-300 border border-blue-700">
+                  TICI
+                </span>
+                <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                  English<span className="text-blue-700 dark:text-blue-400">Miami</span>
+                </span>
+              </div>
+              <span className="text-[11px] font-extrabold tracking-wider uppercase text-amber-700 dark:text-amber-400 mt-0.5">
+                Founded & Owned by Jason Trinidad
               </span>
             </div>
           </div>
           <p className="text-sm leading-relaxed max-w-sm text-slate-600 dark:text-slate-400">
-            A comprehensive, rigorous ESL academy empowering learners from zero fundamentals (A0) to Cambridge/IELTS native mastery (C2) worldwide.
+            Trinidad International Cultural Institute (TICI) • EnglishMiami is a premier Miami university & ESL academy founded by <strong className="text-slate-900 dark:text-white">Jason Trinidad</strong>, empowering students and luxury hospitality professionals from A0 phonics to C2 mastery.
           </p>
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <Globe className="w-4 h-4 text-blue-800" />
-            <span>Supporting native speakers across 40+ countries in Asia, Latin America, Europe, and the Middle East.</span>
+            <span>Miami Beach Campus & Global Online Academy • Serving 40+ Countries</span>
           </div>
         </div>
 
