@@ -52,6 +52,10 @@ export function stopSpeaking() {
   }
 }
 
+export function stopRealisticSpeech() {
+  stopSpeaking();
+}
+
 export function speakRealisticText(text: string, options: VoicePlayOptions = {}) {
   if (typeof window === 'undefined') return;
   const cleanText = (text || '')

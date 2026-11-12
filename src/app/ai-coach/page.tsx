@@ -325,6 +325,75 @@ export default function LiveAITalkingAgentPage() {
   ) => {
     setSetupCompleted(true);
     setLoading(true);
+
+    const buildFallbackInitialTurn = (): LiveAgentTurn => {
+      const isUr = chosenLang === 'ur';
+      const isHi = chosenLang === 'hi';
+      return {
+        id: `turn-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        spokenTeacherReply:
+          chosenLevel === 'basic'
+            ? 'Hello and welcome! I am Sophia, your live English teacher. Tell me in English: What is your name and what do you do every morning?'
+            : chosenLevel === 'mid'
+              ? 'Welcome to your Intermediate Live English Session! Tell me about a memorable trip you took or what you are working on this week.'
+              : 'Welcome to Advanced Executive English! How has technology transformed communication in your industry?',
+        nativeLanguageGreetingOrFeedback: isUr
+          ? `السلام علیکم! میں صوفیہ ہوں، آپ کی لائیو اے آئی انگلش ٹیچر۔ آپ نے اردو زبان اور ${chosenLevel.toUpperCase()} لیول منتخب کیا ہے۔ نیچے مائیک دبا کر یا لکھ کر کوئی بھی انگلش جملہ بولیں، میں آپ کی غلطیاں درست کر کے تفصیلی کارڈز میں سمجھاؤں گی!`
+          : isHi
+            ? `नमस्ते! मैं सोफिया हूँ, आपकी लाइव एआई इंग्लिश टीचर। नीचे माइक दबाकर या लिखकर कोई भी अंग्रेजी वाक्य बोलें, मैं आपकी गलतियाँ सुधार कर कार्ड्स में समझाऊँगी!`
+            : `Welcome! Speak or type any English sentence below, and I will correct your mistakes and explain every grammar rule in your native language.`,
+        hasMistake: false,
+        originalUserSentence: 'Session Started — Speak or click a sample sentence above!',
+        correctedEnglishSentence:
+          'Hello Sophia, I am excited to practice my spoken English today.',
+        advancedAlternativeSentence:
+          'I am eager to sharpen my English fluency through interactive coaching.',
+        mistakeExplanationInNative: isUr
+          ? 'آپ نیچے مائیک کے بٹن پر کلک کر کے بول سکتے ہیں، یا اوپر دیے گئے کسی بھی ٹیسٹ جملے پر کلک کر کے دیکھ سکتے ہیں کہ میں غلط فقرات کو کیسے درست کرتی ہوں۔'
+          : 'Tap the microphone button to speak aloud, or click any sample sentence above to test grammar corrections.',
+        grammarRuleTitle: `${chosenLevel.toUpperCase()} Level • Live Bilingual Coaching Ready`,
+        encouragementInNative: isUr
+          ? 'شاباش! بلا جھجھک انگلش بولنے کی کوشش کریں!'
+          : 'Speak with confidence — every mistake helps you learn faster!',
+        nextTestPrompt: {
+          instructionInNative: isUr
+            ? '🎙️ اب مائیک دبا کر یہ آسان انگلش فقرہ بولیں یا اپنا تعارف کروائیں:'
+            : '🎙️ Tap the microphone and speak this sentence aloud:',
+          targetEnglishToSpeak:
+            'Hello Sophia, I want to improve my English speaking skills.',
+          questionForUser:
+            'What is your favorite hobby or what did you do yesterday?',
+        },
+        vocabularyCards: [
+          {
+            word: 'Confident',
+            phonetic: '/ˈkɒn.fɪ.dənt/',
+            nativeMeaning: isUr ? 'پراعتماد' : 'Self-assured and fearless',
+            example: 'Speaking aloud every day makes you feel confident.',
+          },
+          {
+            word: 'Fluency',
+            phonetic: '/ˈfluː.ən.si/',
+            nativeMeaning: isUr ? 'روانی سے بولنا' : 'Smooth speaking ability',
+            example: 'Consistent practice is the secret to English fluency.',
+          },
+          {
+            word: 'Opportunity',
+            phonetic: '/ˌɒp.əˈtjuː.nə.ti/',
+            nativeMeaning: isUr ? 'سنہری موقع' : 'A favorable career chance',
+            example: 'Good English opens doors to global career opportunities.',
+          },
+        ],
+        fluencyScore: 92,
+        grammarScore: 95,
+        engine: 'miami-bilingual-engine',
+      };
+    };
+
     try {
       const res = await fetch('/api/ai/live-agent', {
         method: 'POST',
@@ -337,26 +406,36 @@ export default function LiveAITalkingAgentPage() {
         }),
       });
       const data = await res.json();
-      if (data.response) {
+      const payload = data?.response || data?.data;
+      if (payload) {
         const firstTurn: LiveAgentTurn = {
           id: `turn-${Date.now()}`,
           timestamp: new Date().toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           }),
-          ...data.response,
+          ...payload,
           engine: data.engine,
         };
         setTurns([firstTurn]);
         playSuccessSound();
         setTimeout(() => {
           speakWithAvatarLipSync(
-            `${data.response.spokenTeacherReply} ${data.response.nextTestPrompt?.questionForUser || ''}`
+            `${payload.spokenTeacherReply || payload.spokenGreetingOrReply || ''} ${
+              payload.nextTestPrompt?.questionForUser || ''
+            }`
           );
         }, 250);
+      } else {
+        const fb = buildFallbackInitialTurn();
+        setTurns([fb]);
+        setTimeout(() => speakWithAvatarLipSync(fb.spokenTeacherReply), 250);
       }
     } catch (err) {
-      console.error('Failed to start Live Agent:', err);
+      console.error('Failed to start Live Agent, using local fallback:', err);
+      const fb = buildFallbackInitialTurn();
+      setTurns([fb]);
+      setTimeout(() => speakWithAvatarLipSync(fb.spokenTeacherReply), 250);
     } finally {
       setLoading(false);
     }
@@ -390,7 +469,8 @@ export default function LiveAITalkingAgentPage() {
       });
 
       const data = await res.json();
-      if (data.response) {
+      const payload = data?.response || data?.data;
+      if (payload) {
         const newTurn: LiveAgentTurn = {
           id: `turn-${Date.now()}`,
           timestamp: new Date().toLocaleTimeString([], {
@@ -398,16 +478,16 @@ export default function LiveAITalkingAgentPage() {
             minute: '2-digit',
           }),
           userSpokenText: cleanText,
-          ...data.response,
+          ...payload,
           engine: data.engine,
         };
         setTurns((prev) => [...prev, newTurn]);
         playSuccessSound();
 
         // Speak the teacher's feedback + corrected sentence + next question
-        const speechScript = data.response.hasMistake
-          ? `${data.response.spokenTeacherReply} The correct sentence is: ${data.response.correctedEnglishSentence}. ${data.response.nextTestPrompt?.questionForUser || ''}`
-          : `${data.response.spokenTeacherReply} ${data.response.nextTestPrompt?.questionForUser || ''}`;
+        const speechScript = payload.hasMistake
+          ? `${payload.spokenTeacherReply} The correct sentence is: ${payload.correctedEnglishSentence}. ${payload.nextTestPrompt?.questionForUser || ''}`
+          : `${payload.spokenTeacherReply} ${payload.nextTestPrompt?.questionForUser || ''}`;
 
         setTimeout(() => {
           speakWithAvatarLipSync(speechScript);

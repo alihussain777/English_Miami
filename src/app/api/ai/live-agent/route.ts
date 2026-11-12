@@ -28,15 +28,62 @@ export interface LiveAgentResponsePayload {
   fluencyScore: number;
 }
 
-function toUnifiedResponse(raw: LiveAgentResponsePayload, langCode: string) {
+function toUnifiedResponse(raw: Partial<LiveAgentResponsePayload>, langCode: string) {
   const isUrdu = langCode === 'ur';
   const isHindi = langCode === 'hi';
+  const spoken =
+    raw.spokenGreetingOrReply ||
+    'Great job practicing with me! Let us review your English sentence below.';
+  const explanation =
+    raw.nativeLanguageExplanation ||
+    (isUrdu
+      ? 'آپ کا جملہ نیچے کارڈ میں درست کر دیا گیا ہے۔ صحیح جملے کو سنیں اور مائیک میں بول کر مشق کریں!'
+      : 'Your sentence has been analyzed and refined in the cards below.');
+  const corrected =
+    raw.correctedEnglishSentence ||
+    raw.spokenEnglishPractice ||
+    'I would like to improve my spoken English fluency.';
   return {
-    ...raw,
-    spokenTeacherReply: raw.spokenGreetingOrReply,
-    nativeLanguageGreetingOrFeedback: raw.nativeLanguageExplanation,
-    hasMistake: raw.hasGrammarMistake,
-    mistakeExplanationInNative: raw.nativeLanguageExplanation,
+    spokenGreetingOrReply: spoken,
+    spokenEnglishPractice: raw.spokenEnglishPractice || corrected,
+    nativeLanguageExplanation: explanation,
+    hasGrammarMistake: Boolean(raw.hasGrammarMistake),
+    originalUserSentence:
+      raw.originalUserSentence || 'Hello Sophia, let us practice English!',
+    correctedEnglishSentence: corrected,
+    advancedAlternativeSentence:
+      raw.advancedAlternativeSentence ||
+      'I am committed to achieving confident, natural English fluency.',
+    grammarRuleTitle:
+      raw.grammarRuleTitle || 'Natural English Sentence Structure & Fluency',
+    vocabularyCards:
+      Array.isArray(raw.vocabularyCards) && raw.vocabularyCards.length > 0
+        ? raw.vocabularyCards
+        : [
+            {
+              word: 'Fluency',
+              phonetic: '/ˈfluː.ən.si/',
+              nativeMeaning: isUrdu ? 'روانی سے بولنا' : 'Smooth, natural speech',
+              example: 'Daily speaking practice builds strong English fluency.',
+            },
+          ],
+    nextTestPrompt: {
+      instructionInNative:
+        raw.nextTestPrompt?.instructionInNative ||
+        (isUrdu
+          ? '🎯 اگلا ٹیسٹ: اوپر والا صحیح فقرہ مائیک میں بول کر سنائیں یا نیچے دیے گئے سوال کا جواب دیں:'
+          : '🎯 Next Live Test: Speak the corrected sentence aloud or answer this question:'),
+      targetEnglishToSpeak:
+        raw.nextTestPrompt?.targetEnglishToSpeak || corrected,
+      questionForUser:
+        raw.nextTestPrompt?.questionForUser ||
+        'What did you do today, and what are your plans for tomorrow?',
+    },
+    fluencyScore: typeof raw.fluencyScore === 'number' ? raw.fluencyScore : 88,
+    spokenTeacherReply: spoken,
+    nativeLanguageGreetingOrFeedback: explanation,
+    hasMistake: Boolean(raw.hasGrammarMistake),
+    mistakeExplanationInNative: explanation,
     encouragementInNative: isUrdu
       ? 'شاباش! نیچے دیا گیا درست انگریزی فقرہ سنیں اور مائیک میں بول کر مشق کریں!'
       : isHindi
@@ -120,7 +167,7 @@ export async function POST(req: NextRequest) {
       try {
         const genAI = new GoogleGenerativeAI(activeApiKey);
         const model = genAI.getGenerativeModel({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash',
           generationConfig: { responseMimeType: 'application/json' },
         });
 
@@ -166,7 +213,12 @@ Return strictly valid JSON matching this exact schema:
 }`;
 
         const result = await model.generateContent(systemPrompt);
-        const parsed = JSON.parse(result.response.text());
+        const rawText = result.response
+          .text()
+          .replace(/^```json\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        const parsed = JSON.parse(rawText);
         const unified = toUnifiedResponse(parsed, nativeLangCode);
         return NextResponse.json({
           success: true,
