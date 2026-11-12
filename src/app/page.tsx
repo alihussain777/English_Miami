@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { DUOLINGO_BASE_LANGUAGES } from '@/lib/duolingo-languages';
+import { speakRealisticText } from '@/lib/voice-engine';
 import {
   ArrowRight,
   Brain,
@@ -27,6 +28,8 @@ import {
   Play,
   X,
   Maximize2,
+  Clock,
+  Tag,
 } from 'lucide-react';
 
 interface GalleryItem {
@@ -46,6 +49,38 @@ export default function HomePage() {
   const [galleryFilter, setGalleryFilter] = useState<'all' | 'fun' | 'graduation'>('all');
   const [lightboxItem, setLightboxItem] = useState<GalleryItem | null>(null);
 
+  // Dynamic Regional Pricing & SEO Blogs state
+  const [pricingConfig, setPricingConfig] = useState<any>(null);
+  const [selectedRegionCode, setSelectedRegionCode] = useState<string>('us-eu');
+  const [blogs, setBlogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/pricing')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.regionalPricing) setPricingConfig(d);
+      })
+      .catch(() => {});
+
+    fetch('/api/blogs')
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.blogs)) setBlogs(d.blogs.slice(0, 3));
+      })
+      .catch(() => {});
+
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      if (tz.includes('Karachi') || tz.includes('Kolkata') || tz.includes('Dhaka')) {
+        setSelectedRegionCode('south-asia');
+      } else if (tz.includes('America/Sao_Paulo') || tz.includes('America/Mexico') || tz.includes('Bogota')) {
+        setSelectedRegionCode('latam');
+      } else if (tz.includes('Dubai') || tz.includes('Riyadh')) {
+        setSelectedRegionCode('mena-asia');
+      }
+    } catch {}
+  }, []);
+
   const handleChooseLanguageAndStart = (code: string) => {
     try {
       localStorage.setItem('tici_base_lang', code);
@@ -57,15 +92,11 @@ export default function HomePage() {
   };
 
   const playNativeAudio = (text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    setSpeakingSample(true);
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.95;
-    utterance.onend = () => setSpeakingSample(false);
-    utterance.onerror = () => setSpeakingSample(false);
-    window.speechSynthesis.speak(utterance);
+    speakRealisticText(text, {
+      rate: 0.95,
+      onStart: () => setSpeakingSample(true),
+      onEnd: () => setSpeakingSample(false),
+    });
   };
 
   const heroDemos = {
@@ -212,7 +243,7 @@ export default function HomePage() {
 
   const skillsList = [
     {
-      title: '3D Gamified Learn Path',
+      title: 'Gamified Learn Path',
       desc: 'Interactive stepping stones, phonics study sheets, word banks, and instant XP rewards.',
       icon: Compass,
       href: '/learn',
@@ -220,14 +251,14 @@ export default function HomePage() {
     },
     {
       title: 'Speaking Lab & Speech AI',
-      desc: 'Real-time voice recognition with syllable-level pronunciation accuracy scoring.',
+      desc: 'Real-time voice recognition with word-by-word pronunciation accuracy scoring.',
       icon: Mic,
       href: '/speaking',
       accent: 'bg-blue-600 shadow-[0_4px_0_0_#1e3a8a]',
     },
     {
       title: 'Wikipedia Real-World Reader',
-      desc: 'Read live encyclopedic articles with audio narration and 1-click vocabulary extraction.',
+      desc: 'Read live encyclopedic study cards with realistic voice speed control and comprehension tests.',
       icon: Globe,
       href: '/reading',
       accent: 'bg-indigo-600 shadow-[0_4px_0_0_#3730a3]',
@@ -248,7 +279,7 @@ export default function HomePage() {
     },
     {
       title: 'Listening Comprehension',
-      desc: 'Native dialogues with variable speed control (0.65x turtle to 1.2x) and dictation.',
+      desc: 'Native dialogues with variable speed control (0.65x slow to 1.15x) and dictation.',
       icon: Headphones,
       href: '/listening',
       accent: 'bg-cyan-600 shadow-[0_4px_0_0_#155e75]',
@@ -295,7 +326,7 @@ export default function HomePage() {
       role: 'Product Marketing Lead',
       native: 'Portuguese',
       quote:
-        'Combining live classroom presentations with the 3D online learning path makes studying effortless. I remember 95% of every unit I complete.',
+        'Combining live classroom presentations with the interactive online learning path makes studying effortless. I remember 95% of every unit I complete.',
     },
     {
       name: 'Priya Sharma',
@@ -314,12 +345,12 @@ export default function HomePage() {
       a: 'Yes! Our A0 Foundation track starts right from the 26 English alphabet letters, short and long vowel phonics, numbers 1–100, and survival greetings with interactive audio and bilingual translations.',
     },
     {
-      q: 'How does the 3D Learning Path work?',
+      q: 'How does the Interactive Learning Path work?',
       a: 'Every unit features interactive stepping stones. Tapping any node opens a comprehensive Study Sheet with Theory & Phonics, Vocabulary Flashcards with audio, and Conversational Phrases before you take the quiz.',
     },
     {
       q: 'What is the Wikipedia Real-World Reader?',
-      a: 'Our reading studio connects live to Wikipedia. You can search any topic, listen to native text-to-speech narration, inspect CEFR difficulty, and save new words in one click.',
+      a: 'Our reading studio breaks real-world encyclopedia articles into structured Listen & Read Study Cards with realistic voice speed adjustment, followed by a balanced comprehension test.',
     },
     {
       q: 'Are the CEFR Certificates verifiable online?',
@@ -329,12 +360,48 @@ export default function HomePage() {
 
   const currentDemo = heroDemos[activeDemoTab];
 
+  // Calculate active region pricing
+  const regionsList = pricingConfig?.regionalPricing || [
+    {
+      id: 'us-eu',
+      regionName: 'United States, UK & Europe',
+      flag: '🇺🇸🇪🇺',
+      currencySymbol: '$',
+      monthlyProPrice: 19,
+      annualProMonthlyPrice: 12,
+      discountPercent: 25,
+      promoCode: 'MIAMI25',
+      promoBannerText: '25% OFF for North American & European Learners',
+    },
+    {
+      id: 'south-asia',
+      regionName: 'India, Pakistan & South Asia',
+      flag: '🇮🇳🇵🇰',
+      currencySymbol: '$',
+      monthlyProPrice: 6,
+      annualProMonthlyPrice: 4,
+      discountPercent: 50,
+      promoCode: 'ASIA50',
+      promoBannerText: '50% Regional Scholarship Applied for South Asia!',
+    },
+  ];
+  const activeRegion =
+    regionsList.find((r: any) => r.id === selectedRegionCode) || regionsList[0];
+  const globalDiscount = activeRegion?.discountPercent || 0;
+
+  const originalMonthly = Math.round(
+    activeRegion.monthlyProPrice / Math.max(0.2, 1 - globalDiscount / 100)
+  );
+  const originalAnnualMonthly = Math.round(
+    activeRegion.annualProMonthlyPrice / Math.max(0.2, 1 - globalDiscount / 100)
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
       <Navbar />
 
       {/* =====================================================================
-          HERO SECTION: CLEAN, PROFESSIONAL & USER-FRIENDLY WITH 3D GROUP FRAME
+          HERO SECTION: CLEAN, PROFESSIONAL & USER-FRIENDLY
          ===================================================================== */}
       <section className="relative overflow-hidden pt-10 pb-20 lg:pt-14 lg:pb-24 border-b border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 bg-grid-pattern hero-mesh">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 relative z-10">
@@ -355,7 +422,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-                Learn through interactive classroom immersion and our structured 3D learning path. Master alphabet phonics, bilingual vocabulary with native audio, live Wikipedia reading, and AI speaking practice.
+                Learn through interactive classroom immersion and our structured learning path. Master alphabet phonics, bilingual vocabulary with realistic native audio, live Wikipedia study cards, and AI speaking practice.
               </p>
 
               {/* Clean Tactile CTA Buttons */}
@@ -365,7 +432,7 @@ export default function HomePage() {
                   className="btn-3d-emerald w-full sm:w-auto text-sm sm:text-base font-extrabold px-7 py-3.5 rounded-2xl flex items-center justify-center gap-2 group"
                 >
                   <Play className="w-4 h-4 fill-white" />
-                  <span>Start 3D Learn Path</span>
+                  <span>Start Learn Path</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
 
@@ -395,7 +462,7 @@ export default function HomePage() {
                     <Volume2 className="w-4 h-4" />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-extrabold text-slate-900 dark:text-white">Native Audio</div>
+                    <div className="text-xs font-extrabold text-slate-900 dark:text-white">Realistic Audio</div>
                     <div className="text-[10px] font-semibold text-slate-500">IPA & Phonics</div>
                   </div>
                 </div>
@@ -422,7 +489,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* RIGHT COLUMN: CLEAN 3D FRAMED FRONT GROUP PHOTO */}
+            {/* RIGHT COLUMN: FRAMED FRONT GROUP PHOTO WITH SINGLE SMALL TOP-RIGHT LOGO */}
             <div className="lg:col-span-6 perspective-1000">
               <div className="frame-3d">
                 {/* Clean Top Switcher Bar */}
@@ -480,7 +547,7 @@ export default function HomePage() {
                     <img
                       src="/images/brand/logo-tici.png"
                       alt="TICI Logo"
-                      className="absolute top-3 right-3 w-13 h-13 sm:w-15 sm:h-15 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]"
+                      className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
                     />
                     <div className="absolute bottom-0 inset-x-0 p-5 text-white">
                       <span className="inline-block px-2.5 py-0.5 rounded-md bg-blue-600 text-white font-bold text-[10px] uppercase tracking-wider">
@@ -508,7 +575,7 @@ export default function HomePage() {
                     <img
                       src="/images/brand/logo-tici.png"
                       alt="TICI Logo"
-                      className="absolute top-3 right-3 w-13 h-13 sm:w-15 sm:h-15 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]"
+                      className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
                     />
                     <div className="absolute bottom-0 inset-x-0 p-5 text-white">
                       <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-wider">
@@ -533,7 +600,7 @@ export default function HomePage() {
                           Interactive Lesson Preview
                         </h3>
                         <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          Select a CEFR level to hear native pronunciation
+                          Select a CEFR level to hear realistic pronunciation
                         </p>
                       </div>
                       <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -605,7 +672,7 @@ export default function HomePage() {
               I Speak... (Learn English From Your Language)
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
-              Select your native language below to launch 24+ interactive Basic Duolingo lessons with bilingual translations, word banks, and native audio.
+              Select your native language below to launch 24+ interactive Basic Duolingo lessons with bilingual translations, word banks, and realistic native audio.
             </p>
           </div>
 
@@ -633,7 +700,7 @@ export default function HomePage() {
       </section>
 
       {/* =====================================================================
-          SEVEN-LEVEL CEFR 3D CURRICULUM EXPLORER (A0 TO C2)
+          SEVEN-LEVEL CEFR CURRICULUM EXPLORER (A0 TO C2)
          ===================================================================== */}
       <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
@@ -696,7 +763,7 @@ export default function HomePage() {
       </section>
 
       {/* =====================================================================
-          CLEAN 3D CLASSROOM ACTIVITIES & GRADUATIONS GALLERY
+          CLASSROOM ACTIVITIES & GRADUATIONS GALLERY (SINGLE SMALL LOGO TOP-RIGHT)
          ===================================================================== */}
       <section
         id="campus-fun"
@@ -709,7 +776,7 @@ export default function HomePage() {
                 Campus Life & Presentations
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-                Interactive Classroom Sessions in 3D Frames
+                Interactive Classroom Sessions & Campus Moments
               </h2>
               <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
                 Students build real confidence through live smartboard presentations, group discussions, and graduation milestones.
@@ -749,20 +816,22 @@ export default function HomePage() {
                     alt={item.title}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                  {/* Badge on Top-Left */}
+                  <div className="absolute top-3 left-3">
                     <span className="px-2.5 py-1 rounded-lg bg-slate-900/80 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
                       {item.badge}
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-slate-900/75 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Maximize2 className="w-4 h-4" />
-                    </div>
                   </div>
-                  {/* Official TICI Brand Watermark on Class Pics */}
+                  {/* Single Small TICI Logo Strictly on Top-Right */}
                   <img
                     src="/images/brand/logo-tici.png"
                     alt="TICI Logo"
-                    className="absolute bottom-3 right-3 w-12 h-12 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                    className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
                   />
+                  {/* Zoom Icon on Bottom-Right */}
+                  <div className="absolute bottom-3 right-3 w-8 h-8 rounded-lg bg-slate-900/75 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Maximize2 className="w-4 h-4" />
+                  </div>
                 </div>
 
                 <div className="p-4 space-y-1">
@@ -779,7 +848,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal (Single Small Top-Right Logo) */}
       {lightboxItem && (
         <div
           className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4"
@@ -798,12 +867,12 @@ export default function HomePage() {
               <img
                 src="/images/brand/logo-tici.png"
                 alt="TICI Logo"
-                className="absolute bottom-4 right-4 w-16 h-16 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.85)]"
+                className="absolute top-3 right-3 w-9 h-9 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]"
               />
               <button
                 type="button"
                 onClick={() => setLightboxItem(null)}
-                className="absolute top-3 right-3 p-2 rounded-xl bg-slate-900/80 text-white hover:bg-rose-600 transition-colors cursor-pointer"
+                className="absolute top-3 left-3 p-2 rounded-xl bg-slate-900/80 text-white hover:bg-rose-600 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -817,11 +886,6 @@ export default function HomePage() {
                   {lightboxItem.subtitle}
                 </p>
               </div>
-              <img
-                src="/images/brand/logo-tici.png"
-                alt="TICI Logo"
-                className="w-14 h-14 object-contain shrink-0"
-              />
             </div>
           </div>
         </div>
@@ -844,7 +908,7 @@ export default function HomePage() {
                   <img
                     src="/images/brand/logo-tici.png"
                     alt="TICI Logo"
-                    className="absolute bottom-3 right-3 w-13 h-13 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                    className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
                   />
                 </div>
               </div>
@@ -875,7 +939,7 @@ export default function HomePage() {
       </section>
 
       {/* =====================================================================
-          8 CORE COMPETENCIES: 3D BENTO GRID
+          8 CORE COMPETENCIES: BENTO GRID
          ===================================================================== */}
       <section className="py-20 bg-white dark:bg-slate-900 border-y border-slate-200/80 dark:border-slate-800/80 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
@@ -926,20 +990,51 @@ export default function HomePage() {
       </section>
 
       {/* =====================================================================
-          PRICING SECTION: 3D TACTILE PLANS
+          PRICING SECTION: COUNTRY-WISE REGIONAL PRICING & DISCOUNTS
          ===================================================================== */}
       <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-10 space-y-3">
             <span className="text-xs font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-              Transparent Tuition Plans
+              Regional Tuition & Scholarship Plans
             </span>
             <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
               Start Free. Upgrade Anytime.
             </h2>
             <p className="text-base text-slate-600 dark:text-slate-400 font-medium">
-              Complete A0 and A1 foundational tracks are 100% free forever.
+              Complete A0 and A1 foundational tracks are 100% free forever. Select your region for localized tuition & active scholarships:
             </p>
+
+            {/* Region Selector Pills */}
+            <div className="pt-3 flex flex-wrap items-center justify-center gap-2">
+              {regionsList.map((r: any) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setSelectedRegionCode(r.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border ${
+                    selectedRegionCode === r.id
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                  }`}
+                >
+                  <span>{r.flag}</span>
+                  <span>{r.regionName}</span>
+                </button>
+              ))}
+            </div>
+
+            {globalDiscount > 0 && (
+              <div className="pt-2">
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-300 text-xs font-black border border-emerald-300 dark:border-emerald-800">
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>
+                    {activeRegion.promoBannerText || `${globalDiscount}% Regional Scholarship Active`} • Code:{' '}
+                    <span className="underline">{activeRegion.promoCode || 'MIAMI'}</span>
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
@@ -952,7 +1047,7 @@ export default function HomePage() {
                   <span className="text-xs font-bold text-slate-500 ml-1">/ forever</span>
                 </div>
                 <ul className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Complete A0 & A1 3D Learn Path</li>
+                  <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Complete A0 & A1 Learn Path</li>
                   <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Full Theory, Phonics & Audio Cards</li>
                   <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> 10 AI Coach chats / day</li>
                   <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Wikipedia ESL Reader access</li>
@@ -969,11 +1064,18 @@ export default function HomePage() {
 
             <div className="card-3d p-8 flex flex-col justify-between">
               <div>
-                <h3 className="font-black text-xl text-slate-900 dark:text-white">Weekly Sprint</h3>
-                <p className="text-xs font-medium text-slate-500 mt-1">Ideal for fast job interview or exam prep.</p>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Monthly Pro</h3>
+                <p className="text-xs font-medium text-slate-500 mt-1">Flexible month-to-month full curriculum access.</p>
                 <div className="my-6">
-                  <span className="text-4xl font-black text-slate-900 dark:text-white">$6.99</span>
-                  <span className="text-xs font-bold text-slate-500 ml-1">/ week</span>
+                  {globalDiscount > 0 && (
+                    <div className="text-xs font-bold text-slate-400 line-through">
+                      {activeRegion.currencySymbol}{originalMonthly}
+                    </div>
+                  )}
+                  <span className="text-4xl font-black text-slate-900 dark:text-white">
+                    {activeRegion.currencySymbol}{activeRegion.monthlyProPrice}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 ml-1">/ month</span>
                 </div>
                 <ul className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
                   <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-blue-600 shrink-0" /> All CEFR levels (A0 to C2)</li>
@@ -987,19 +1089,26 @@ export default function HomePage() {
                 href="/pricing"
                 className="mt-8 block text-center py-3.5 rounded-2xl font-extrabold text-xs btn-3d-secondary uppercase tracking-wider"
               >
-                Choose Weekly Pro
+                Choose Monthly Pro
               </Link>
             </div>
 
             <div className="relative p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-500 shadow-[0_8px_0_0_#059669,0_20px_35px_-10px_rgba(5,150,105,0.25)] flex flex-col justify-between -translate-y-1">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black uppercase tracking-wider px-4 py-1 rounded-full shadow-md whitespace-nowrap">
-                ★ Most Popular • Recommended
+                ★ Most Popular • {globalDiscount > 0 ? `Save ${globalDiscount}%` : 'Recommended'}
               </div>
               <div>
-                <h3 className="font-black text-xl text-slate-900 dark:text-white">Monthly Pro</h3>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Annual Pro Pass</h3>
                 <p className="text-xs font-medium text-slate-500 mt-1">Full comprehensive fluency & certification.</p>
                 <div className="my-6">
-                  <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400">$19.99</span>
+                  {globalDiscount > 0 && (
+                    <div className="text-xs font-bold text-slate-400 line-through">
+                      {activeRegion.currencySymbol}{originalAnnualMonthly}
+                    </div>
+                  )}
+                  <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
+                    {activeRegion.currencySymbol}{activeRegion.annualProMonthlyPrice}
+                  </span>
                   <span className="text-xs font-bold text-slate-500 ml-1">/ month</span>
                 </div>
                 <ul className="space-y-3 text-xs font-bold text-slate-700 dark:text-slate-200">
@@ -1014,12 +1123,94 @@ export default function HomePage() {
                 href="/pricing"
                 className="mt-8 btn-3d-emerald block text-center py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider"
               >
-                Start Monthly Pro
+                Start Annual Pro
               </Link>
             </div>
           </div>
         </div>
       </section>
+
+      {/* =====================================================================
+          SEO BLOGS & ENGLISH LEARNING GUIDES SECTION (ORGANIC SEARCH RANKING)
+         ===================================================================== */}
+      {blogs.length > 0 && (
+        <section className="py-20 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800/80 transition-colors">
+          <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 space-y-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <span className="text-xs font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                  English Fluency Blog & Study Guides
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Latest English Learning Articles & Tips
+                </h2>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
+                  In-depth guides on phonics, speaking confidence, workplace vocabulary, and CEFR exam preparation written by TICI faculty.
+                </p>
+              </div>
+
+              <Link
+                href="/blog"
+                className="btn-3d-primary text-xs sm:text-sm font-extrabold px-6 py-3.5 rounded-2xl inline-flex items-center gap-2 self-start md:self-auto"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Explore All English Blogs</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+              {blogs.map((post: any) => (
+                <Link
+                  href={`/blog/${post.slug}`}
+                  key={post.id}
+                  className="card-3d card-3d-interactive overflow-hidden flex flex-col justify-between group"
+                >
+                  <div>
+                    <div className="relative h-52 bg-slate-900 overflow-hidden">
+                      <img
+                        src={post.coverImage || '/images/brand/hero-group-fair.jpg'}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 left-3">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-900/85 text-white text-[10px] font-extrabold uppercase tracking-wider">
+                          {post.category}
+                        </span>
+                      </div>
+                      <img
+                        src="/images/brand/logo-tici.png"
+                        alt="TICI Logo"
+                        className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
+                      />
+                    </div>
+
+                    <div className="p-6 space-y-2.5">
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                        <Clock className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{post.readTimeMinutes || 5} min read</span>
+                        <span>•</span>
+                        <span>{post.authorName || 'Jason Trinidad'}</span>
+                      </div>
+                      <h3 className="font-black text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
+                        {post.excerpt}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="px-6 pb-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-extrabold text-blue-700 dark:text-blue-400">
+                    <span>Read Full Guide</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* =====================================================================
           LEARNER TESTIMONIALS
@@ -1104,13 +1295,13 @@ export default function HomePage() {
           <img
             src="/images/brand/logo-tici.png"
             alt="TICI Logo"
-            className="w-24 h-24 object-contain mx-auto"
+            className="w-20 h-20 object-contain mx-auto"
           />
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
             Ready to Start Your English Journey?
           </h2>
           <p className="text-lg text-blue-200 max-w-2xl mx-auto font-medium">
-            Begin with A0 Phonics & Greetings or take the 5-minute placement test.
+            Begin with A0 Phonics & Greetings, explore our English Blog, or take the 5-minute placement test.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -1118,7 +1309,14 @@ export default function HomePage() {
               className="btn-3d-emerald text-sm font-black px-8 py-4 rounded-2xl inline-flex items-center gap-2 uppercase tracking-wider"
             >
               <Play className="w-4 h-4 fill-white" />
-              <span>Open 3D Learn Path</span>
+              <span>Open Learn Path</span>
+            </Link>
+            <Link
+              href="/blog"
+              className="btn-3d-secondary text-sm font-black px-8 py-4 rounded-2xl inline-flex items-center gap-2 uppercase tracking-wider text-slate-900"
+            >
+              <BookOpen className="w-4 h-4 text-blue-600" />
+              <span>Read English Blogs</span>
             </Link>
             <Link
               href="/signup"

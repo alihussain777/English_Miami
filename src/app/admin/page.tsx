@@ -32,12 +32,23 @@ import {
   UserPlus,
   FolderPlus,
   FilePlus,
+  Globe,
+  Bell,
+  FileText,
+  Tag,
 } from 'lucide-react';
 import { UserSession } from '@/types';
+import {
+  RegionalPricingTier,
+  BroadcastNotification,
+  BlogPostItem,
+} from '@/lib/site-config-store';
 
 export default function AdminDashboardPage() {
   const [session, setSession] = useState<UserSession | null>(null);
-  const [activeTab, setActiveTab] = useState<'courses' | 'students' | 'certificates' | 'revenue'>('courses');
+  const [activeTab, setActiveTab] = useState<
+    'courses' | 'students' | 'pricing' | 'blogs' | 'notifications' | 'certificates' | 'revenue'
+  >('courses');
 
   // Global toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -115,6 +126,158 @@ export default function AdminDashboardPage() {
   const [issueNotes, setIssueNotes] = useState('');
   const [issuingLoading, setIssuingLoading] = useState(false);
 
+  // Country-Wise Pricing & Discount State
+  const [regionalPricing, setRegionalPricing] = useState<RegionalPricingTier[]>([]);
+  const [globalDiscountActive, setGlobalDiscountActive] = useState(true);
+  const [globalDiscountBanner, setGlobalDiscountBanner] = useState('');
+  const [savingPricing, setSavingPricing] = useState(false);
+
+  // Broadcast Notifications State
+  const [notificationsList, setNotificationsList] = useState<BroadcastNotification[]>([]);
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [notifType, setNotifType] = useState<'info' | 'promo' | 'achievement' | 'update'>('info');
+  const [notifUrl, setNotifUrl] = useState('/learn');
+  const [notifLabel, setNotifLabel] = useState('Open Learn Path');
+  const [sendingNotif, setSendingNotif] = useState(false);
+
+  // SEO Blogs Studio State
+  const [blogsList, setBlogsList] = useState<BlogPostItem[]>([]);
+  const [blogTitle, setBlogTitle] = useState('');
+  const [blogCategory, setBlogCategory] = useState('Spoken Fluency');
+  const [blogReadTime, setBlogReadTime] = useState('6');
+  const [blogCover, setBlogCover] = useState('/images/brand/hero-group-fair.jpg');
+  const [blogAccent, setBlogAccent] = useState<'blue' | 'emerald' | 'indigo' | 'amber'>('blue');
+  const [blogKeywords, setBlogKeywords] = useState('speak english fluently, esl miami, cefr english');
+  const [blogExcerpt, setBlogExcerpt] = useState('');
+  const [blogContent, setBlogContent] = useState(
+    '<h2>Why Daily Spoken Practice Matters</h2>\n<p>Write your engaging, SEO-optimized English learning guide here...</p>'
+  );
+  const [publishingBlog, setPublishingBlog] = useState(false);
+
+  const fetchSiteConfigAdmin = async () => {
+    try {
+      const [pRes, nRes, bRes] = await Promise.all([
+        fetch('/api/pricing').then((r) => r.json()),
+        fetch('/api/notifications').then((r) => r.json()),
+        fetch('/api/blogs').then((r) => r.json()),
+      ]);
+      if (pRes.regionalPricing) setRegionalPricing(pRes.regionalPricing);
+      if (typeof pRes.globalDiscountActive === 'boolean')
+        setGlobalDiscountActive(pRes.globalDiscountActive);
+      if (pRes.globalDiscountBanner) setGlobalDiscountBanner(pRes.globalDiscountBanner);
+      if (nRes.notifications) setNotificationsList(nRes.notifications);
+      if (bRes.blogs) setBlogsList(bRes.blogs);
+    } catch (err) {
+      console.error('Failed to fetch site config:', err);
+    }
+  };
+
+  const handleSavePricingConfig = async () => {
+    setSavingPricing(true);
+    try {
+      const res = await fetch('/api/pricing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          globalDiscountActive,
+          globalDiscountBanner,
+          regionalPricing,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Country-wise pricing & discount settings saved and live!');
+      }
+    } catch {
+      alert('Failed to save pricing');
+    } finally {
+      setSavingPricing(false);
+    }
+  };
+
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifTitle.trim() || !notifMessage.trim()) return;
+    setSendingNotif(true);
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: notifTitle,
+          message: notifMessage,
+          type: notifType,
+          actionUrl: notifUrl,
+          actionLabel: notifLabel,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotificationsList(data.notifications);
+        setNotifTitle('');
+        setNotifMessage('');
+        showToast('Broadcast notification sent to all users!');
+      }
+    } catch {
+      alert('Failed to send notification');
+    } finally {
+      setSendingNotif(false);
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      const res = await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.notifications) setNotificationsList(data.notifications);
+      showToast('Notification removed');
+    } catch {}
+  };
+
+  const handlePublishBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blogTitle.trim() || !blogContent.trim()) return;
+    setPublishingBlog(true);
+    try {
+      const res = await fetch('/api/blogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: blogTitle,
+          excerpt: blogExcerpt,
+          category: blogCategory,
+          readTimeMinutes: Number(blogReadTime) || 5,
+          coverImage: blogCover,
+          accentColor: blogAccent,
+          seoKeywords: blogKeywords,
+          contentHtml: blogContent,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBlogsList(data.blogs);
+        setBlogTitle('');
+        setBlogExcerpt('');
+        showToast('SEO Blog published! Live on Homepage & /blog.');
+      }
+    } catch {
+      alert('Failed to publish blog');
+    } finally {
+      setPublishingBlog(false);
+    }
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm('Delete this blog post?')) return;
+    try {
+      const res = await fetch(`/api/blogs?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.blogs) setBlogsList(data.blogs);
+      showToast('Blog deleted');
+    } catch {}
+  };
+
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/stats');
@@ -175,8 +338,9 @@ export default function AdminDashboardPage() {
       fetchCourses('ALL'),
       fetchStudents(),
       fetchCertificates(),
+      fetchSiteConfigAdmin(),
       fetch('/api/auth/me').then((r) => r.json()).catch(() => ({})),
-    ]).then(([_, __, ___, ____, authData]) => {
+    ]).then(([_, __, ___, ____, _____, authData]) => {
       if (authData?.authenticated && authData?.user) {
         setSession({
           id: authData.user.id,
@@ -525,10 +689,10 @@ export default function AdminDashboardPage() {
                 <span>Admin Control Center • Full Access Active</span>
               </div>
               <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
-                Courses, Students & Platform Manager
+                Courses, Regional Pricing, Blogs & Students Manager
               </h1>
               <p className="text-xs sm:text-sm text-blue-200/90 max-w-2xl font-medium">
-                Add new CEFR courses & lessons (instantly live on the 3D Duolingo Learn Path), enroll and manage students, upgrade plans, and issue official certificates.
+                Manage CEFR courses & lessons, configure country-wise pricing & discounts (US/Europe, India/Pakistan/Asia, Latin America), publish SEO blogs, and broadcast notifications to all users.
               </p>
             </div>
 
@@ -631,7 +795,46 @@ export default function AdminDashboardPage() {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>2. Manage Students ({students.length})</span>
+            <span>2. Students ({students.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('pricing')}
+            className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'pricing'
+                ? 'btn-3d-primary'
+                : 'btn-3d-secondary text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            <Globe className="w-4 h-4 text-emerald-500" />
+            <span>3. Country Pricing & Discounts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('blogs')}
+            className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'blogs'
+                ? 'btn-3d-primary'
+                : 'btn-3d-secondary text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            <FileText className="w-4 h-4 text-blue-500" />
+            <span>4. SEO Blogs Studio ({blogsList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('notifications')}
+            className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'notifications'
+                ? 'btn-3d-primary'
+                : 'btn-3d-secondary text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            <Bell className="w-4 h-4 text-amber-500" />
+            <span>5. Broadcast Notifications ({notificationsList.length})</span>
           </button>
 
           <button
@@ -644,7 +847,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <Award className="w-4 h-4" />
-            <span>3. Certificates ({certificates.length})</span>
+            <span>6. Certificates ({certificates.length})</span>
             {certStats.pending > 0 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950">
                 {certStats.pending}
@@ -662,7 +865,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            <span>4. Revenue & Analytics</span>
+            <span>7. Revenue & Analytics</span>
           </button>
         </div>
 
@@ -1327,6 +1530,543 @@ export default function AdminDashboardPage() {
                     );
                   }
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            TAB 3: COUNTRY-WISE PRICING & DISCOUNT CONTROL
+           ===================================================================== */}
+        {activeTab === 'pricing' && (
+          <div className="space-y-6">
+            {/* Global Promo / Discount Banner Card */}
+            <div className="card-3d p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Global Discount & Country-Based Pricing Engine
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+                    Adjust Prices for US/Europe, India/Pakistan/Asia, Latin America & Middle East
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Control what tuition price and discount percentage visitors from each country/region see on the Homepage and /pricing page.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={savingPricing}
+                  onClick={handleSavePricingConfig}
+                  className="btn-3d-emerald px-6 py-3 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{savingPricing ? 'Saving...' : 'Save All Pricing & Discounts'}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={globalDiscountActive}
+                    onChange={(e) => setGlobalDiscountActive(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    Enable Global Scholarship / Discount Banner
+                  </span>
+                </label>
+
+                <div className="md:col-span-2">
+                  <input
+                    type="text"
+                    value={globalDiscountBanner}
+                    onChange={(e) => setGlobalDiscountBanner(e.target.value)}
+                    placeholder="Global promo banner text..."
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Regional Pricing Cards Editor */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {regionalPricing.map((tier, idx) => (
+                <div key={tier.id} className="card-3d p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{tier.flag}</span>
+                      <div>
+                        <h4 className="font-black text-base text-slate-900 dark:text-white">
+                          {tier.regionName}
+                        </h4>
+                        <p className="text-[11px] text-slate-500">{tier.countriesLabel}</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-black">
+                      {tier.discountPercent}% OFF
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase mb-1">
+                        Monthly Pro ({tier.currencySymbol})
+                      </label>
+                      <input
+                        type="number"
+                        value={tier.monthlyProPrice}
+                        onChange={(e) => {
+                          const next = [...regionalPricing];
+                          next[idx] = { ...tier, monthlyProPrice: Number(e.target.value) };
+                          setRegionalPricing(next);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-black text-blue-700 dark:text-blue-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase mb-1">
+                        Annual / Mo ({tier.currencySymbol})
+                      </label>
+                      <input
+                        type="number"
+                        value={tier.annualProMonthlyPrice}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          const next = [...regionalPricing];
+                          next[idx] = {
+                            ...tier,
+                            annualProMonthlyPrice: val,
+                            annualProTotal: val * 12,
+                          };
+                          setRegionalPricing(next);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-black text-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase mb-1">
+                        Discount %
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={90}
+                        value={tier.discountPercent}
+                        onChange={(e) => {
+                          const next = [...regionalPricing];
+                          next[idx] = { ...tier, discountPercent: Number(e.target.value) };
+                          setRegionalPricing(next);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-black text-amber-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase mb-1">
+                        Promo Code
+                      </label>
+                      <input
+                        type="text"
+                        value={tier.promoCode}
+                        onChange={(e) => {
+                          const next = [...regionalPricing];
+                          next[idx] = { ...tier, promoCode: e.target.value };
+                          setRegionalPricing(next);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase mb-1">
+                        Regional Banner Text
+                      </label>
+                      <input
+                        type="text"
+                        value={tier.promoBannerText}
+                        onChange={(e) => {
+                          const next = [...regionalPricing];
+                          next[idx] = { ...tier, promoBannerText: e.target.value };
+                          setRegionalPricing(next);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            TAB 4: SEO BLOGS DESIGNER & PUBLISHER STUDIO
+           ===================================================================== */}
+        {activeTab === 'blogs' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Create / Design Blog Form */}
+            <div className="lg:col-span-7 card-3d p-6 sm:p-7 space-y-5">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                  Organic Google SEO & Content Studio
+                </span>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+                  Design & Publish Attractive Blog Article
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Published blogs appear automatically on the Homepage and /blog to boost organic search ranking.
+                </p>
+              </div>
+
+              <form onSubmit={handlePublishBlog} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                    Blog Title (SEO Headline) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={blogTitle}
+                    onChange={(e) => setBlogTitle(e.target.value)}
+                    placeholder="e.g. 7 Daily Habits to Speak English Confidently Without Translating"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={blogCategory}
+                      onChange={(e) => setBlogCategory(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold"
+                    >
+                      <option value="Spoken Fluency">Spoken Fluency</option>
+                      <option value="CEFR Curriculum">CEFR Curriculum</option>
+                      <option value="Pronunciation & Accent">Pronunciation & Accent</option>
+                      <option value="Grammar & Vocabulary">Grammar & Vocabulary</option>
+                      <option value="Career & Interviews">Career & Interviews</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                      Read Time (Mins)
+                    </label>
+                    <input
+                      type="number"
+                      min={2}
+                      max={30}
+                      value={blogReadTime}
+                      onChange={(e) => setBlogReadTime(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                      Card Theme Color
+                    </label>
+                    <select
+                      value={blogAccent}
+                      onChange={(e) => setBlogAccent(e.target.value as any)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold"
+                    >
+                      <option value="blue">Royal Miami Blue</option>
+                      <option value="emerald">Emerald Fluency</option>
+                      <option value="indigo">Executive Indigo</option>
+                      <option value="amber">Warm Gold</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Cover Image Selector */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
+                    Choose Cover Image or Paste Custom Image URL
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: 'Campus Fair', url: '/images/brand/hero-group-fair.jpg' },
+                      { label: 'Graduation', url: '/images/brand/jason-graduation-group.jpg' },
+                      { label: 'Class Activity', url: '/images/brand/class-fun-1.jpg' },
+                      { label: 'Student Group', url: '/images/brand/class-fun-2.jpg' },
+                    ].map((img) => (
+                      <button
+                        key={img.url}
+                        type="button"
+                        onClick={() => setBlogCover(img.url)}
+                        className={`p-1.5 rounded-xl border-2 text-center cursor-pointer transition-all ${
+                          blogCover === img.url
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/60'
+                            : 'border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.label}
+                          className="w-full h-12 object-cover rounded-lg mb-1"
+                        />
+                        <span className="text-[10px] font-bold block truncate">{img.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={blogCover}
+                    onChange={(e) => setBlogCover(e.target.value)}
+                    placeholder="Or enter custom image URL..."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                    Short Summary / Excerpt (Shown on Cards & Google Meta)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={blogExcerpt}
+                    onChange={(e) => setBlogExcerpt(e.target.value)}
+                    placeholder="A concise 2-sentence summary that attracts readers from search engines..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                    Article Content (Supports HTML Headings &lt;h2&gt;, &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;) *
+                  </label>
+                  <textarea
+                    rows={6}
+                    required
+                    value={blogContent}
+                    onChange={(e) => setBlogContent(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                    SEO Keywords (Comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={blogKeywords}
+                    onChange={(e) => setBlogKeywords(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={publishingBlog}
+                  className="w-full btn-3d-primary py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer"
+                >
+                  {publishingBlog ? 'Publishing Blog...' : 'Publish Attractive SEO Blog Post'}
+                </button>
+              </form>
+            </div>
+
+            {/* Published Blogs List */}
+            <div className="lg:col-span-5 card-3d p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  Published Blogs ({blogsList.length})
+                </h3>
+                <Link
+                  href="/blog"
+                  className="text-xs font-black text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <span>View Public /blog</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
+                {blogsList.map((b) => (
+                  <div
+                    key={b.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-start gap-3"
+                  >
+                    <img
+                      src={b.coverImage}
+                      alt={b.title}
+                      className="w-16 h-16 rounded-xl object-cover shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-black uppercase text-emerald-600">
+                        {b.category} • {b.readTimeMinutes}m
+                      </span>
+                      <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                        {b.title}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">
+                        {b.excerpt}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <Link
+                          href={`/blog/${b.slug}`}
+                          className="text-[11px] font-black text-blue-600 hover:underline"
+                        >
+                          Read Post →
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBlog(b.id)}
+                          className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            TAB 5: BROADCAST NOTIFICATIONS TO ALL USERS
+           ===================================================================== */}
+        {activeTab === 'notifications' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-6 card-3d p-6 sm:p-7 space-y-5">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-600">
+                  Global Student Alert System
+                </span>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+                  Send Notification to All Users
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Notifications appear immediately inside the 🔔 Bell dropdown in the top navigation bar for every visitor and student.
+                </p>
+              </div>
+
+              <form onSubmit={handleSendNotification} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                    Notification Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={notifTitle}
+                    onChange={(e) => setNotifTitle(e.target.value)}
+                    placeholder="e.g. 🎉 Weekend Scholarship: 50% OFF Monthly Pro!"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                    Notification Message *
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={notifMessage}
+                    onChange={(e) => setNotifMessage(e.target.value)}
+                    placeholder="Write the announcement message that all students will see..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                      Badge Type
+                    </label>
+                    <select
+                      value={notifType}
+                      onChange={(e) => setNotifType(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold"
+                    >
+                      <option value="info">Info / Tip</option>
+                      <option value="promo">Discount / Promo</option>
+                      <option value="update">New Course / Feature</option>
+                      <option value="achievement">Milestone</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                      Target Page Link
+                    </label>
+                    <input
+                      type="text"
+                      value={notifUrl}
+                      onChange={(e) => setNotifUrl(e.target.value)}
+                      placeholder="/learn or /pricing"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                      Button Text
+                    </label>
+                    <input
+                      type="text"
+                      value={notifLabel}
+                      onChange={(e) => setNotifLabel(e.target.value)}
+                      placeholder="Open Now"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={sendingNotif}
+                  className="w-full btn-3d-emerald py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{sendingNotif ? 'Broadcasting...' : 'Broadcast Notification to All Users'}</span>
+                </button>
+              </form>
+            </div>
+
+            <div className="lg:col-span-6 card-3d p-6 space-y-4">
+              <h3 className="font-black text-base text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
+                Active Broadcast Notifications ({notificationsList.length})
+              </h3>
+              <div className="space-y-3">
+                {notificationsList.map((n) => (
+                  <div
+                    key={n.id}
+                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-start justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="font-black text-sm text-slate-900 dark:text-white">
+                        {n.title}
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{n.message}</p>
+                      <span className="inline-block text-[10px] font-bold text-blue-600">
+                        Link: {n.actionUrl} ({n.actionLabel})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteNotification(n.id)}
+                      className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 cursor-pointer shrink-0"
+                      title="Delete Notification"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   Volume2,
   Mic,
+  MicOff,
   CheckCircle2,
   XCircle,
   X,
   Heart,
   Trophy,
-  Sparkles,
+  BookOpen,
   ArrowRight,
   RotateCcw,
+  LayoutDashboard,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -24,6 +27,12 @@ import {
   playWrongSound,
   playFanfareSound,
 } from '@/lib/audio-feedback';
+import {
+  speakRealisticText,
+  stopSpeaking,
+  evaluateSpokenAccuracy,
+  SpokenEvaluationResult,
+} from '@/lib/voice-engine';
 
 interface Props {
   lesson: DuolingoGeneratedLesson;
@@ -48,17 +57,23 @@ export default function DuolingoPracticeModal({
   const [expectedAnswerDisplay, setExpectedAnswerDisplay] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [spokenTranscript, setSpokenTranscript] = useState('');
+  const [speechEval, setSpeechEval] = useState<SpokenEvaluationResult | null>(null);
   const [completedSession, setCompletedSession] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
 
+  // Study material drawer toggle inside Practice Modal + Safe Exit confirmation
+  const [showStudyDrawer, setShowStudyDrawer] = useState(false);
+  const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+
+  const recRef = useRef<any>(null);
+  const recStartRef = useRef<number>(Date.now());
+
   const currentChallenge: DuolingoChallenge | undefined = challenges[currentIdx];
 
-  // Normalize choices into string array for rendering
   const getNormalizedChoices = (ch: DuolingoChallenge): string[] => {
     if (ch.choices && ch.choices.length > 0) {
       return ch.choices.map((c) => (typeof c === 'string' ? c : c.text));
     }
-    // If no choices (e.g. listenIsolation or name without choices), build choices from tokens or vocabulary
     const tokenWords = (ch.tokens || [])
       .map((t) => (t.value || '').trim())
       .filter((w) => w && !/^[^\w]+$/.test(w));
@@ -93,50 +108,49 @@ export default function DuolingoPracticeModal({
     setStatus('idle');
     setExpectedAnswerDisplay('');
     setSpokenTranscript('');
+    setSpeechEval(null);
+    setIsRecording(false);
 
     const rawChoices = getNormalizedChoices(currentChallenge);
     setDisplayChoices(rawChoices);
 
-    // Auto-play audio on exercise load if it has TTS
-    if (currentChallenge.tts) {
-      playAudioUrl(currentChallenge.tts, 1.0, currentChallenge.prompt);
+    const englishTextToSpeak =
+      currentChallenge.sourceLanguage === 'en' || currentChallenge.type !== 'translate'
+        ? currentChallenge.prompt ||
+          (currentChallenge.tokens || []).map((t) => t.value).join('')
+        : '';
+
+    if (englishTextToSpeak || currentChallenge.tts) {
+      speakRealisticText(englishTextToSpeak || currentChallenge.prompt || '', {
+        rate: 0.95,
+        audioUrl: currentChallenge.tts,
+        preferBrowserTTS: true,
+      });
     }
+
+    return () => {
+      stopSpeaking();
+    };
   }, [currentIdx, currentChallenge]);
 
-  const playAudioUrl = (url?: string, rate: number = 1.0, fallbackText?: string) => {
-    if (typeof window === 'undefined') return;
-    if (url) {
-      try {
-        const audio = new Audio(url);
-        audio.playbackRate = rate;
-        audio.play().catch(() => {
-          if (fallbackText) speakFallback(fallbackText, rate);
-        });
-        return;
-      } catch {
-        // fallback below
-      }
-    }
-    if (fallbackText) {
-      speakFallback(fallbackText, rate);
-    }
-  };
+  const playAudio = (url?: string, rate: number = 0.95, fallbackText?: string) => {
+    const textToUse =
+      fallbackText ||
+      currentChallenge?.prompt ||
+      (currentChallenge?.tokens || []).map((t) => t.value).join('');
 
-  const speakFallback = (text: string, rate: number = 1.0) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = rate;
-    window.speechSynthesis.speak(u);
+    speakRealisticText(textToUse, {
+      rate,
+      audioUrl: url,
+      preferBrowserTTS: true,
+    });
   };
 
   const handleToggleChoice = (idx: number) => {
     if (status !== 'idle') return;
-    // Play word audio if available
     const wordText = displayChoices[idx];
     if (wordText && /^[A-Za-z]/.test(wordText)) {
-      speakFallback(wordText, 1.0);
+      speakRealisticText(wordText, { rate: 0.95, preferBrowserTTS: true });
     }
     if (selectedChoiceIndices.includes(idx)) {
       setSelectedChoiceIndices(selectedChoiceIndices.filter((i) => i !== idx));
@@ -177,15 +191,30 @@ export default function DuolingoPracticeModal({
     const expected = getExpectedSolutionText(currentChallenge);
     setExpectedAnswerDisplay(expected);
 
-    // 1. Speaking exercise
     if (currentChallenge.type === 'speak') {
-      playCorrectSound();
-      setStatus('correct');
-      setCorrectCount((c) => c + 1);
+      const targetSentence =
+        currentChallenge.prompt ||
+        (currentChallenge.tokens || []).map((t) => t.value).join('') ||
+        expected;
+      const evalResult =
+        speechEval ||
+        evaluateSpokenAccuracy(
+          targetSentence,
+          spokenTranscript || targetSentence,
+          2.5
+        );
+      setSpeechEval(evalResult);
+      if (evalResult.overallScore >= 50) {
+        playCorrectSound();
+        setStatus('correct');
+        setCorrectCount((c) => c + 1);
+      } else {
+        playWrongSound();
+        setStatus('wrong');
+      }
       return;
     }
 
-    // 2. Picture naming or text input
     if (currentChallenge.type === 'name' && textInput.trim()) {
       const userClean = normalizeForCompare(textInput);
       const solutions = (currentChallenge.correctSolutions || [expected]).map(
@@ -203,13 +232,11 @@ export default function DuolingoPracticeModal({
       return;
     }
 
-    // 3. Word bank / choice selection
     const userBuilt = selectedChoiceIndices
       .map((i) => displayChoices[i])
       .join(' ');
     const userClean = normalizeForCompare(userBuilt);
 
-    // Check against correctIndices if original choices weren't shuffled
     let isMatch = false;
     if (
       currentChallenge.correctIndices &&
@@ -253,62 +280,100 @@ export default function DuolingoPracticeModal({
     }
   };
 
+  const gradeSpokenInput = (transcriptText: string) => {
+    if (!currentChallenge) return;
+    const targetSentence =
+      currentChallenge.prompt ||
+      (currentChallenge.tokens || []).map((t) => t.value).join('') ||
+      getExpectedSolutionText(currentChallenge);
+    const dur = Math.max(1.2, (Date.now() - recStartRef.current) / 1000);
+    const result = evaluateSpokenAccuracy(targetSentence, transcriptText, dur);
+    setSpokenTranscript(transcriptText);
+    setSpeechEval(result);
+    setExpectedAnswerDisplay(targetSentence);
+
+    if (result.overallScore >= 55) {
+      playCorrectSound();
+      setStatus('correct');
+      setCorrectCount((c) => c + 1);
+    } else {
+      playWrongSound();
+      setStatus('wrong');
+    }
+  };
+
   const handleStartSpeechRecognition = () => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !currentChallenge) return;
+
+    if (isRecording && recRef.current) {
+      try {
+        recRef.current.stop();
+      } catch {}
+      setIsRecording(false);
+      return;
+    }
+
     const SpeechRec =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
+    const targetSentence =
+      currentChallenge.prompt ||
+      (currentChallenge.tokens || []).map((t) => t.value).join('') ||
+      getExpectedSolutionText(currentChallenge);
+
     if (!SpeechRec) {
-      // Browser doesn't support SpeechRecognition -> mark spoken & verify
-      setSpokenTranscript(
-        currentChallenge?.prompt || getExpectedSolutionText(currentChallenge!)
-      );
-      playCorrectSound();
-      setStatus('correct');
-      setCorrectCount((c) => c + 1);
+      gradeSpokenInput(targetSentence);
       return;
     }
 
     try {
       const rec = new SpeechRec();
       rec.lang = 'en-US';
-      rec.interimResults = false;
+      rec.continuous = false;
+      rec.interimResults = true;
       rec.maxAlternatives = 1;
+      recRef.current = rec;
+      recStartRef.current = Date.now();
       setIsRecording(true);
+      let latestHeard = '';
 
       rec.onresult = (event: any) => {
-        const transcript = event.results?.[0]?.[0]?.transcript || '';
-        setSpokenTranscript(transcript);
-        setIsRecording(false);
-        playCorrectSound();
-        setStatus('correct');
-        setCorrectCount((c) => c + 1);
+        let interim = '';
+        let finalStr = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const r = event.results[i];
+          if (r.isFinal) finalStr += r[0].transcript + ' ';
+          else interim += r[0].transcript;
+        }
+        const combined = (finalStr + interim).trim();
+        if (combined) {
+          latestHeard = combined;
+          setSpokenTranscript(combined);
+        }
+        if (finalStr.trim()) {
+          setIsRecording(false);
+          gradeSpokenInput(finalStr.trim());
+        }
       };
 
       rec.onerror = () => {
         setIsRecording(false);
-        setSpokenTranscript(
-          currentChallenge?.prompt || getExpectedSolutionText(currentChallenge!)
-        );
-        playCorrectSound();
-        setStatus('correct');
-        setCorrectCount((c) => c + 1);
+        if (latestHeard) {
+          gradeSpokenInput(latestHeard);
+        }
       };
 
       rec.onend = () => {
         setIsRecording(false);
+        if (latestHeard && !speechEval) {
+          gradeSpokenInput(latestHeard);
+        }
       };
 
       rec.start();
     } catch {
       setIsRecording(false);
-      setSpokenTranscript(
-        currentChallenge?.prompt || getExpectedSolutionText(currentChallenge!)
-      );
-      playCorrectSound();
-      setStatus('correct');
-      setCorrectCount((c) => c + 1);
     }
   };
 
@@ -351,13 +416,22 @@ export default function DuolingoPracticeModal({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-4 rounded-2xl btn-3d-emerald font-black text-sm uppercase tracking-wider cursor-pointer"
-          >
-            Continue Learning Path
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3.5 rounded-2xl btn-3d-emerald font-black text-xs uppercase tracking-wider cursor-pointer"
+            >
+              Back to Learning Path
+            </button>
+            <Link
+              href="/dashboard"
+              className="px-5 py-3.5 rounded-2xl btn-3d-secondary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Dashboard</span>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -402,15 +476,16 @@ export default function DuolingoPracticeModal({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <div className="card-3d w-full max-w-2xl flex flex-col max-h-[95vh] overflow-hidden border-2 border-slate-200 dark:border-slate-700">
-        {/* Top Progress Bar & Hearts */}
-        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-4 bg-white dark:bg-slate-900">
+        {/* Top Progress Bar, Study Sheet Button & Safe Exit */}
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 bg-white dark:bg-slate-900">
           <button
             type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-            title="Exit practice"
+            onClick={() => setConfirmExitOpen(!confirmExitOpen)}
+            className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0"
+            title="Pause or Exit Practice"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
+            <span className="hidden sm:inline">Pause</span>
           </button>
 
           <div className="flex-1 h-3.5 rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -420,11 +495,99 @@ export default function DuolingoPracticeModal({
             />
           </div>
 
-          <div className="flex items-center gap-1.5 text-rose-500 font-black text-sm shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowStudyDrawer(!showStudyDrawer)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+              showStudyDrawer
+                ? 'bg-blue-600 text-white border-blue-700'
+                : 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Study Material</span>
+          </button>
+
+          <div className="flex items-center gap-1 text-rose-500 font-black text-sm shrink-0">
             <Heart className="w-5 h-5 fill-rose-500" />
             <span>{hearts}</span>
           </div>
         </div>
+
+        {/* Safe Exit / Pause Bar (prevents accidental click sending user away) */}
+        {confirmExitOpen && (
+          <div className="px-5 py-3 bg-amber-50 dark:bg-amber-950/80 border-b border-amber-200 dark:border-amber-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <span className="font-extrabold text-amber-900 dark:text-amber-200">
+              Where would you like to go?
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmExitOpen(false)}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-black cursor-pointer"
+              >
+                Resume Test
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+              >
+                Learning Path
+              </button>
+              <Link
+                href="/dashboard"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold flex items-center gap-1"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Expandable Study Material Drawer inside Practice */}
+        {showStudyDrawer && (
+          <div className="p-4 sm:p-5 bg-blue-50/70 dark:bg-slate-800/90 border-b-2 border-blue-200 dark:border-slate-700 max-h-64 overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase tracking-wider text-blue-800 dark:text-blue-300">
+                📖 Lesson Learning Material ({langInfo.nativeName} → English)
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShowStudyDrawer(false)}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                Hide ▲
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {(lesson.vocabularyWords || []).map((v, i) => (
+                <div
+                  key={i}
+                  className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2"
+                >
+                  <div>
+                    <div className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                      {v.word}
+                    </div>
+                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {v.allHints?.join(' • ') || v.translation}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => playAudio(v.tts, 0.9, v.word)}
+                    className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Main Exercise Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 bg-white dark:bg-slate-900">
@@ -452,7 +615,7 @@ export default function DuolingoPracticeModal({
             {currentChallenge.character_url && (
               <img
                 src={currentChallenge.character_url}
-                alt="Duolingo Character"
+                alt="Character"
                 className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0"
               />
             )}
@@ -463,7 +626,7 @@ export default function DuolingoPracticeModal({
                 <button
                   type="button"
                   onClick={() =>
-                    playAudioUrl(currentChallenge.tts, 1.0, promptText)
+                    playAudio(currentChallenge.tts, 0.95, promptText)
                   }
                   className="btn-3d-primary px-4 py-2.5 rounded-2xl inline-flex items-center gap-2 text-xs font-black cursor-pointer"
                   title="Listen at normal speed"
@@ -475,17 +638,17 @@ export default function DuolingoPracticeModal({
                 <button
                   type="button"
                   onClick={() =>
-                    playAudioUrl(currentChallenge.tts, 0.65, promptText)
+                    playAudio(currentChallenge.tts, 0.65, promptText)
                   }
                   className="btn-3d-secondary px-3.5 py-2.5 rounded-2xl inline-flex items-center gap-1.5 text-xs font-extrabold cursor-pointer"
-                  title="Play slow audio (Turtle speed)"
+                  title="Play slow audio (0.65x)"
                 >
                   <span className="text-base">🐢</span>
-                  <span>Slow</span>
+                  <span>Slow (0.65x)</span>
                 </button>
               </div>
 
-              {/* Prompt with Interactive Word Hints (except pure listenTap where text is hidden until answered) */}
+              {/* Prompt with Interactive Word Hints */}
               {currentChallenge.type !== 'listenTap' || status !== 'idle' ? (
                 <div className="pt-1">
                   {currentChallenge.tokens && currentChallenge.tokens.length > 0 ? (
@@ -510,7 +673,7 @@ export default function DuolingoPracticeModal({
                               type="button"
                               onClick={() => {
                                 if (tok.tts || /^[A-Za-z]/.test(val)) {
-                                  playAudioUrl(tok.tts, 1.0, val);
+                                  playAudio(tok.tts, 0.9, val);
                                 }
                                 setActiveTokenHintIndex(isOpen ? null : tIdx);
                               }}
@@ -548,7 +711,7 @@ export default function DuolingoPracticeModal({
                     </p>
                   )}
                   <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                    💡 Tip: Tap any underlined word to hear its pronunciation & see its {langInfo.name} meaning!
+                    💡 Tap any underlined word to hear its pronunciation & see its {langInfo.name} meaning!
                   </p>
                 </div>
               ) : (
@@ -561,32 +724,83 @@ export default function DuolingoPracticeModal({
 
           {/* EXERCISE TYPE: SPEAK */}
           {currentChallenge.type === 'speak' ? (
-            <div className="space-y-4 text-center py-4">
-              <button
-                type="button"
-                onClick={handleStartSpeechRecognition}
-                className={`mx-auto px-8 py-5 rounded-3xl font-black text-sm sm:text-base flex items-center justify-center gap-3 cursor-pointer transition-all ${
-                  isRecording
-                    ? 'bg-rose-600 text-white animate-pulse shadow-[0_6px_0_0_#881337]'
-                    : 'btn-3d-primary'
-                }`}
-              >
-                <Mic className="w-6 h-6" />
-                <span>
-                  {isRecording
-                    ? 'Listening... Speak now!'
-                    : 'Tap to Speak in English'}
-                </span>
-              </button>
+            <div className="space-y-4 text-center py-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleStartSpeechRecognition}
+                  className={`px-8 py-4 rounded-3xl font-black text-sm sm:text-base flex items-center justify-center gap-3 cursor-pointer transition-all ${
+                    isRecording
+                      ? 'bg-rose-600 text-white animate-pulse shadow-[0_6px_0_0_#881337]'
+                      : 'btn-3d-primary'
+                  }`}
+                >
+                  {isRecording ? (
+                    <>
+                      <MicOff className="w-6 h-6 animate-bounce" />
+                      <span>Listening... Speak Now (Tap to stop)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-6 h-6" />
+                      <span>Tap to Speak in English</span>
+                    </>
+                  )}
+                </button>
+
+                {status === 'idle' && (
+                  <button
+                    type="button"
+                    onClick={() => gradeSpokenInput(promptText)}
+                    className="px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-extrabold text-slate-600 dark:text-slate-300 cursor-pointer"
+                  >
+                    Mark Spoken Aloud
+                  </button>
+                )}
+              </div>
 
               {spokenTranscript && (
-                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                  You said: "{spokenTranscript}"
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-3 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">
+                      🎙️ You said: &ldquo;{spokenTranscript}&rdquo;
+                    </span>
+                    {speechEval && (
+                      <span
+                        className={`text-xs font-black px-2.5 py-1 rounded-lg ${
+                          speechEval.overallScore >= 75
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                        }`}
+                      >
+                        Score: {speechEval.overallScore}%
+                      </span>
+                    )}
+                  </div>
+
+                  {speechEval && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {speechEval.wordBreakdown.map((wb, i) => (
+                        <span
+                          key={i}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-extrabold ${
+                            wb.status === 'correct'
+                              ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'
+                              : wb.status === 'close'
+                              ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300'
+                              : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300'
+                          }`}
+                        >
+                          {wb.word}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ) : (
-            /* EXERCISE TYPES: TRANSLATE / LISTENTAP / LISTEN / NAME (WORD BANK TILES) */
+            /* EXERCISE TYPES: TRANSLATE / LISTENTAP / LISTEN / NAME */
             <div className="space-y-5">
               {/* Selected Answer Strip */}
               <div className="min-h-[68px] p-3.5 rounded-2xl bg-slate-100/80 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-wrap items-center gap-2">
@@ -631,7 +845,6 @@ export default function DuolingoPracticeModal({
                   })}
                 </div>
               ) : (
-                /* Fallback text input for picture naming if no choices array */
                 <input
                   type="text"
                   value={textInput}

@@ -53,8 +53,8 @@ export default function MeetFounderPage() {
     {
       id: 'owner-slot-4',
       title: 'Solo Owner Portrait Slot',
-      roleTag: 'Ready 3D Portrait Frame #4',
-      caption: 'Dedicated 3D frame ready for additional solo portraits — click "Change Photo" anytime to update.',
+      roleTag: 'Founder Portrait Frame #4',
+      caption: 'Dedicated portrait frame ready for additional solo portraits — click "Change Photo" anytime to update.',
       defaultImage: '/images/brand/group-lounge.jpg',
     },
   ];
@@ -228,7 +228,7 @@ export default function MeetFounderPage() {
                 <img
                   src="/images/brand/logo-tici.png"
                   alt="TICI Logo"
-                  className="absolute top-3 right-3 w-13 h-13 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                  className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
                 />
                 <div className="absolute bottom-0 inset-x-0 p-5 text-white">
                   <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-blue-600 text-white">
@@ -256,18 +256,18 @@ export default function MeetFounderPage() {
           </div>
         </div>
 
-        {/* Dedicated 3D Portrait Frames Section (Ready for Owner Photos) */}
+        {/* Dedicated Portrait Frames Section (Ready for Owner Photos) */}
         <div className="space-y-8 pt-6 border-t border-slate-200 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <span className="text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                3D Portrait Gallery
+                Founder Portrait Gallery
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
                 Founder Moments & Portrait Frames
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                You can also update or add new solo portraits of Jason Trinidad in any 3D frame below using the "Change Photo" button.
+                You can also update or add new solo portraits of Jason Trinidad in any frame below using the "Change Photo" button.
               </p>
             </div>
           </div>
@@ -292,7 +292,7 @@ export default function MeetFounderPage() {
                     <img
                       src="/images/brand/logo-tici.png"
                       alt="TICI Logo"
-                      className="absolute bottom-3 right-3 w-12 h-12 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                      className="absolute top-3 right-3 w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]"
                     />
                   </div>
 

@@ -9,15 +9,14 @@ import {
   CreditCard,
   Check,
   ShieldCheck,
-  Zap,
-  ArrowRight,
-  Clock,
-  RotateCcw,
   Loader2,
-  X
+  X,
+  Globe,
+  Tag,
 } from 'lucide-react';
 import { playFanfareSound } from '@/lib/audio-feedback';
 import { SubscriptionPlan, UserSession } from '@/types';
+import { RegionalPricingTier } from '@/lib/site-config-store';
 
 export default function PricingPage() {
   const [session, setSession] = useState<UserSession | null>(null);
@@ -27,14 +26,39 @@ export default function PricingPage() {
   const [processing, setProcessing] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Regional Pricing & Discount State controlled by Admin Panel
+  const [regionalTiers, setRegionalTiers] = useState<RegionalPricingTier[]>([]);
+  const [selectedTierId, setSelectedTierId] = useState<string>('us-eu');
+  const [globalDiscountActive, setGlobalDiscountActive] = useState<boolean>(true);
+  const [globalDiscountBanner, setGlobalDiscountBanner] = useState<string>('');
+
   useEffect(() => {
     Promise.all([
       fetch('/api/subscriptions').then((r) => r.json()),
       fetch('/api/auth/me').then((r) => r.json()),
+      fetch('/api/pricing').then((r) => r.json()),
     ])
-      .then(([subData, authData]) => {
+      .then(([subData, authData, priceData]) => {
         if (subData.currentSubscription) setSubscription(subData.currentSubscription);
         if (subData.paymentHistory) setPayments(subData.paymentHistory);
+
+        const tiers: RegionalPricingTier[] = priceData.regionalPricing || [];
+        setRegionalTiers(tiers);
+        setGlobalDiscountActive(priceData.globalDiscountActive ?? true);
+        setGlobalDiscountBanner(priceData.globalDiscountBanner || '');
+
+        let detectedTier = 'us-eu';
+        try {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+          if (/Karachi|Calcutta|Kolkata|Dhaka|Colombo|Kathmandu/i.test(tz)) {
+            detectedTier = 'south-asia';
+          } else if (/Mexico|Bogota|Sao_Paulo|Buenos_Aires|Lima|Santiago/i.test(tz)) {
+            detectedTier = 'latam';
+          } else if (/Dubai|Riyadh|Istanbul|Tokyo|Seoul/i.test(tz)) {
+            detectedTier = 'mena-asia';
+          }
+        } catch {}
+
         if (authData.authenticated && authData.user) {
           setSession({
             id: authData.user.id,
@@ -45,10 +69,36 @@ export default function PricingPage() {
             plan: authData.user.subscription?.plan || 'FREE',
             onboardingCompleted: true,
           });
+          const c = (authData.user.profile?.country || '').toLowerCase();
+          if (/india|pakistan|bangladesh|nepal|sri lanka/.test(c)) {
+            detectedTier = 'south-asia';
+          } else if (/mexico|brazil|colombia|argentina|chile|peru/.test(c)) {
+            detectedTier = 'latam';
+          }
         }
+
+        setSelectedTierId(detectedTier);
       })
       .catch(() => {});
   }, []);
+
+  const activeTier =
+    regionalTiers.find((t) => t.id === selectedTierId) ||
+    regionalTiers[0] || {
+      id: 'us-eu',
+      regionName: 'United States, UK & Europe',
+      countriesLabel: 'USA, UK, Europe',
+      flag: '🇺🇸🇪🇺',
+      currencySymbol: '$',
+      currencyCode: 'USD',
+      monthlyProPrice: 19,
+      annualProMonthlyPrice: 12,
+      annualProTotal: 144,
+      discountPercent: 25,
+      promoCode: 'MIAMI25',
+      promoBannerText: '25% OFF Welcome Discount',
+      active: true,
+    };
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     if (!session) {
@@ -88,7 +138,6 @@ export default function PricingPage() {
       const data = await res.json();
       if (data.success) {
         setSubscription(data.subscription);
-        alert(data.message);
       }
     } catch (err) {
       console.error(err);
@@ -96,6 +145,11 @@ export default function PricingPage() {
   };
 
   const currentPlan = session?.plan || subscription?.plan || 'FREE';
+
+  const originalMonthly =
+    activeTier.discountPercent > 0
+      ? Math.round(activeTier.monthlyProPrice / (1 - activeTier.discountPercent / 100))
+      : activeTier.monthlyProPrice;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
@@ -105,21 +159,59 @@ export default function PricingPage() {
         {session && <DashboardSidebar session={session} />}
 
         <main className="flex-1 space-y-8 pb-24 lg:pb-8">
-          {/* Header */}
-          <div className="text-center space-y-2 max-w-2xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-widest text-oxford-600 dark:text-oxford-400">
-              Institutional & Individual Tuition
+          {/* Global Discount Banner if active */}
+          {globalDiscountActive && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-center font-black text-xs sm:text-sm shadow-sm flex flex-wrap items-center justify-center gap-2">
+              <Tag className="w-4 h-4" />
+              <span>{globalDiscountBanner || activeTier.promoBannerText}</span>
+              {activeTier.promoCode && (
+                <span className="px-2.5 py-0.5 rounded-lg bg-white/20 text-white font-mono text-xs">
+                  Code: {activeTier.promoCode} ({activeTier.discountPercent}% OFF Applied)
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Header & Visitor Country/Region Pricing Selector */}
+          <div className="text-center space-y-4 max-w-3xl mx-auto">
+            <span className="text-xs font-black uppercase tracking-widest text-blue-700 dark:text-blue-400">
+              Country-Wise Fair Tuition & Institutional Plans
             </span>
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
               Invest in Your English Fluency
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Transparent plans with immediate access to speech analysis, AI coaching, and certified CEFR testing.
+              Localized pricing adjusted for your region with full access to 23-language Duolingo paths, Speaking Lab, Wikipedia Study Cards, and CEFR Certificates.
             </p>
+
+            {/* Region Selector Bar */}
+            {regionalTiers.length > 0 && (
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs font-extrabold text-slate-500 flex items-center gap-1 mr-1">
+                  <Globe className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Visitor Region:</span>
+                </span>
+                {regionalTiers.map((tier) => (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    onClick={() => setSelectedTierId(tier.id)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                      selectedTierId === tier.id
+                        ? 'bg-blue-700 text-white border-blue-800 shadow-xs'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                    }`}
+                  >
+                    <span>{tier.flag}</span>
+                    <span>{tier.regionName}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {successMsg && (
-            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-800 dark:text-emerald-300 text-sm font-semibold text-center">
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-800 dark:text-emerald-300 text-sm font-bold text-center">
               {successMsg}
             </div>
           )}
@@ -127,117 +219,131 @@ export default function PricingPage() {
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Free Plan */}
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
               <div>
-                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Free Starter</h3>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Free Starter</h3>
                 <p className="text-xs text-slate-500 mt-1">Foundation for absolute beginners.</p>
                 <div className="my-6">
-                  <span className="text-4xl font-extrabold text-slate-900 dark:text-white">$0</span>
+                  <span className="text-4xl font-black text-slate-900 dark:text-white">
+                    {activeTier.currencySymbol}0
+                  </span>
                   <span className="text-xs text-slate-400 ml-1">/ forever</span>
                 </div>
-                <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> A0 & A1 Beginner Courses</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 10 AI Coach chats / day</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 5 min speaking practice / day</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Wikipedia ESL Reader access</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Basic vocabulary tests</li>
+                <ul className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 23-Language Basic Learn Path (A0 & A1)</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 10 Miami AI Coach chats / day</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Speaking Lab pronunciation checks</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Wikipedia Reading Study Cards</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Official CEFR Placement Diagnostic</li>
                 </ul>
               </div>
 
               <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
                 {currentPlan === 'FREE' ? (
-                  <span className="block text-center py-2.5 rounded-xl text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800">
+                  <span className="block text-center py-2.5 rounded-xl text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800">
                     Current Active Plan
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => handleSubscribe('FREE')}
-                    className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                    className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
                   >
-                    Downgrade to Free
+                    Switch to Free Starter
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Weekly Pro */}
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Weekly Pro</h3>
-                <p className="text-xs text-slate-500 mt-1">Flexible for short-term interview preparation.</p>
-                <div className="my-6">
-                  <span className="text-4xl font-extrabold text-slate-900 dark:text-white">$6.99</span>
-                  <span className="text-xs text-slate-400 ml-1">/ week</span>
-                </div>
-                <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> All CEFR levels (A0 to C2)</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> 200 AI messages daily</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> 60 min speaking practice daily</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Wikipedia Reader & Vocab Bank</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Writing Lab grading</li>
-                </ul>
+            {/* Monthly Pro (Regional Price) */}
+            <div className="relative p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-blue-700 dark:border-blue-500 shadow-lg flex flex-col justify-between">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1 rounded-full whitespace-nowrap">
+                {activeTier.flag} {activeTier.discountPercent}% Regional Discount Applied
               </div>
-
-              <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
-                {currentPlan === 'WEEKLY_PRO' ? (
-                  <span className="block text-center py-2.5 rounded-xl text-xs font-semibold text-oxford-700 dark:text-oxford-300 bg-oxford-50 dark:bg-oxford-950">
-                    Current Active Plan
+              <div>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white">Monthly Pro</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Full unlimited fluency suite for {activeTier.regionName}.
+                </p>
+                <div className="my-6 flex items-baseline gap-2">
+                  {activeTier.discountPercent > 0 && (
+                    <span className="text-lg font-bold text-slate-400 line-through">
+                      {activeTier.currencySymbol}{originalMonthly}
+                    </span>
+                  )}
+                  <span className="text-4xl font-black text-blue-700 dark:text-blue-400">
+                    {activeTier.currencySymbol}{activeTier.monthlyProPrice}
                   </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutPlan('WEEKLY_PRO')}
-                    className="w-full btn-secondary text-xs font-semibold py-2.5 rounded-xl"
-                  >
-                    Upgrade to Weekly Pro
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Monthly Pro */}
-            <div className="relative p-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-oxford-600 dark:border-oxford-500 shadow-md flex flex-col justify-between">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-oxford-700 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full">
-                Best Value • Most Popular
-              </div>
-              <div>
-                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Monthly Pro</h3>
-                <p className="text-xs text-slate-500 mt-1">Unlimited comprehensive fluency package.</p>
-                <div className="my-6">
-                  <span className="text-4xl font-extrabold text-oxford-700 dark:text-oxford-400">$19.99</span>
-                  <span className="text-xs text-slate-400 ml-1">/ month</span>
+                  <span className="text-xs text-slate-400">/ month</span>
                 </div>
-                <ul className="space-y-3 text-xs text-slate-700 dark:text-slate-200">
-                  <li className="flex items-center gap-2 font-semibold"><Check className="w-4 h-4 text-oxford-600" /> Unlimited AI Coach & Grammar Doctor</li>
-                  <li className="flex items-center gap-2 font-semibold"><Check className="w-4 h-4 text-oxford-600" /> Unlimited Speaking & Pronunciation</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Cambridge / IELTS Writing Lab</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Official Verifiable CEFR Certificates</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-oxford-600" /> Priority Gemini Flash Speed</li>
+                <ul className="space-y-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <li className="flex items-center gap-2 font-extrabold"><Check className="w-4 h-4 text-emerald-600" /> All CEFR Levels (A0 to C2 Mastery)</li>
+                  <li className="flex items-center gap-2 font-extrabold"><Check className="w-4 h-4 text-emerald-600" /> Unlimited Speaking Lab & Word Scoring</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Unlimited Miami AI Coach & Roleplay</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Official Verifiable CEFR Certificates</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Personalized Spaced Repetition Bank</li>
                 </ul>
               </div>
 
               <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
                 {currentPlan === 'MONTHLY_PRO' ? (
-                  <span className="block text-center py-2.5 rounded-xl text-xs font-semibold text-oxford-700 dark:text-oxford-300 bg-oxford-50 dark:bg-oxford-950">
+                  <span className="block text-center py-2.5 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950">
                     Current Active Plan
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setCheckoutPlan('MONTHLY_PRO')}
-                    className="w-full btn-primary text-xs font-semibold py-3 rounded-xl"
+                    className="w-full btn-3d-primary text-xs font-black py-3.5 rounded-xl cursor-pointer"
                   >
-                    Upgrade to Monthly Pro
+                    Upgrade to Monthly Pro ({activeTier.currencySymbol}{activeTier.monthlyProPrice}/mo)
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* Annual Pro Scholarship */}
+            <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-500 dark:border-emerald-600 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-xl text-slate-900 dark:text-white">Annual Pro</h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-black uppercase">
+                    Best Savings
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Billed annually ({activeTier.currencySymbol}{activeTier.annualProTotal}/year).
+                </p>
+                <div className="my-6">
+                  <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
+                    {activeTier.currencySymbol}{activeTier.annualProMonthlyPrice}
+                  </span>
+                  <span className="text-xs text-slate-400 ml-1">/ month</span>
+                </div>
+                <ul className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Everything in Monthly Pro</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Save extra 35% with Annual Billing</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Priority Graduation Certificate Review</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Full Offline & Mobile Study Access</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 30-Day Satisfaction Guarantee</li>
+                </ul>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setCheckoutPlan('MONTHLY_PRO')}
+                  className="w-full btn-3d-emerald text-xs font-black py-3.5 rounded-xl cursor-pointer"
+                >
+                  Claim Annual Scholarship ({activeTier.currencySymbol}{activeTier.annualProMonthlyPrice}/mo)
+                </button>
               </div>
             </div>
           </div>
 
           {/* Active Subscription Status & Cancellation */}
           {session && subscription && currentPlan !== 'FREE' && (
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
               <div>
                 <h4 className="font-bold text-sm text-slate-900 dark:text-white">
                   Subscription Active ({currentPlan.replace('_', ' ')})
@@ -253,7 +359,7 @@ export default function PricingPage() {
                 <button
                   type="button"
                   onClick={handleCancelSubscription}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 cursor-pointer"
                 >
                   Cancel Renewal
                 </button>
@@ -263,7 +369,7 @@ export default function PricingPage() {
 
           {/* Billing History */}
           {payments.length > 0 && (
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <h3 className="font-bold text-base text-slate-900 dark:text-white">
                 Billing & Payment History
               </h3>
@@ -289,68 +395,56 @@ export default function PricingPage() {
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="max-w-md w-full p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                    Confirm {checkoutPlan.replace('_', ' ')}
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white">
+                    Confirm {checkoutPlan.replace('_', ' ')} ({activeTier.regionName})
                   </h3>
                   <button
                     type="button"
                     onClick={() => setCheckoutPlan(null)}
-                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
+                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-oxford-50 dark:bg-oxford-950/40 border border-oxford-200 dark:border-oxford-800 flex items-center justify-between text-xs">
-                  <span className="font-bold text-oxford-900 dark:text-oxford-200">
-                    {checkoutPlan === 'WEEKLY_PRO' ? '$6.99 USD / week' : '$19.99 USD / month'}
-                  </span>
-                  <span className="text-[11px] font-semibold text-oxford-700">Immediate Full Access</span>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Cardholder Name</label>
-                    <input
-                      type="text"
-                      defaultValue={session?.name || 'Sofia Rodriguez'}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                    />
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Selected Region:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {activeTier.flag} {activeTier.regionName}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Card Details (Simulated Test Card)</label>
-                    <input
-                      type="text"
-                      defaultValue="•••• •••• •••• 4242 (Stripe Verified)"
-                      disabled
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 font-mono text-slate-500"
-                    />
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Regional Price:</span>
+                    <span className="font-black text-emerald-600">
+                      {activeTier.currencySymbol}{activeTier.monthlyProPrice}/month ({activeTier.discountPercent}% OFF)
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>256-bit encrypted checkout architecture. Cancel anytime.</span>
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>256-bit SSL Encrypted • Cancel anytime with 1 click</span>
                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutPlan(null)}
-                    className="flex-1 btn-secondary text-xs py-2 rounded-xl"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={processing}
-                    onClick={() => handleSubscribe(checkoutPlan)}
-                    className="flex-1 btn-primary text-xs py-2 rounded-xl flex items-center justify-center gap-1.5"
-                  >
-                    {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    <span>Confirm Subscription</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled={processing}
+                  onClick={() => handleSubscribe(checkoutPlan)}
+                  className="w-full btn-3d-emerald text-xs font-black py-3.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Activating Plan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>Complete Enrollment</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}

@@ -5,7 +5,7 @@ import { UserSession } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, password, nativeLanguage = 'hi', country = '' } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required.' }, { status: 400 });
@@ -35,10 +35,11 @@ export async function POST(req: NextRequest) {
           create: {
             currentLevel: 'A0',
             targetLevel: 'B2',
-            nativeLanguage: 'Spanish',
+            nativeLanguage: nativeLanguage || 'hi',
+            country: country || null,
             learningGoal: 'Speaking English',
-            onboardingCompleted: false,
-            xp: 50, // Welcome XP
+            onboardingCompleted: true,
+            xp: 50,
           },
         },
         subscription: {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
       role: 'STUDENT',
       currentLevel: 'A0',
       plan: 'FREE',
-      onboardingCompleted: false,
+      onboardingCompleted: true,
     };
 
     const token = await createSessionToken(sessionPayload);
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       user: sessionPayload,
+      nativeLanguage: user.profile?.nativeLanguage || nativeLanguage,
       message: 'Account created successfully!',
     });
 
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
     });
 
     return response;

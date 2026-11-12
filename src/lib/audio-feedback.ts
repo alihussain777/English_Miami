@@ -74,6 +74,9 @@ export function playErrorSound() {
   osc.stop(now + 0.35);
 }
 
+export const playCorrectSound = playSuccessSound;
+export const playWrongSound = playErrorSound;
+
 export function playFanfareSound() {
   const ctx = getAudioContext();
   if (!ctx) return;

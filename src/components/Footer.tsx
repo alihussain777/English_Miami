@@ -71,6 +71,7 @@ export default function Footer() {
           </h4>
           <ul className="space-y-2 text-sm">
             <li><Link href="/founder" className="hover:text-blue-900 dark:hover:text-blue-400 font-semibold text-blue-800 dark:text-blue-400">Meet Founder</Link></li>
+            <li><Link href="/blog" className="hover:text-blue-900 dark:hover:text-blue-400 font-semibold text-emerald-700 dark:text-emerald-400">English Learning Blog & Guides</Link></li>
             <li><Link href="/verify-certificate" className="hover:text-blue-900 dark:hover:text-blue-400 font-medium">Verify Certificate</Link></li>
             <li><Link href="/about" className="hover:text-blue-900 dark:hover:text-blue-400">About EnglishMiami</Link></li>
             <li><Link href="/pricing" className="hover:text-blue-900 dark:hover:text-blue-400">Tuition & Plans</Link></li>

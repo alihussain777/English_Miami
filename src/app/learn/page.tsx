@@ -3,12 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import TextToSpeechButton from '@/components/TextToSpeechButton';
 import DuolingoPracticeModal from '@/components/DuolingoPracticeModal';
 import {
   BookOpen,
   CheckCircle2,
-  Lock,
   Star,
   Trophy,
   Flame,
@@ -16,19 +14,14 @@ import {
   Heart,
   Sparkles,
   Zap,
-  Award,
   Play,
   Gift,
   X,
   Volume2,
-  Target,
   Clock,
   Info,
-  Mic,
-  Globe,
-  Brain,
-  BookmarkCheck,
   Languages,
+  LayoutDashboard,
 } from 'lucide-react';
 import { UserSession } from '@/types';
 import confetti from 'canvas-confetti';
@@ -42,8 +35,8 @@ import {
   DuolingoGeneratedUnit,
   DuolingoGeneratedLesson,
 } from '@/lib/duolingo-curriculum';
+import { speakRealisticText } from '@/lib/voice-engine';
 
-// Horizontal sine offsets for Duolingo 3D snake path
 const SINE_OFFSETS = [
   'translate-x-0',
   'translate-x-10 sm:translate-x-16',
@@ -88,26 +81,20 @@ export default function DuolingoLearnPage() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Native Base Language (23 Duolingo Languages)
   const [baseLang, setBaseLang] = useState<string>('hi');
   const [duolingoUnits, setDuolingoUnits] = useState<DuolingoGeneratedUnit[]>([]);
   const [loadingDuolingo, setLoadingDuolingo] = useState<boolean>(true);
   const [completedDuoSlugs, setCompletedDuoSlugs] = useState<string[]>([]);
   const [showAllLangPicker, setShowAllLangPicker] = useState(false);
 
-  // Interactive Duolingo Practice Runner Modal
   const [activePracticeLesson, setActivePracticeLesson] =
     useState<DuolingoGeneratedLesson | null>(null);
 
-  // Duolingo stats
   const [streakDays, setStreakDays] = useState(9);
   const [gems, setGems] = useState(480);
   const [hearts, setHearts] = useState(5);
 
-  // Guidebook modal state
   const [activeGuidebook, setActiveGuidebook] = useState<any | null>(null);
-
-  // Chest opened state
   const [openedChests, setOpenedChests] = useState<Record<string, boolean>>({});
   const [chestModalReward, setChestModalReward] = useState<number | null>(null);
 
@@ -117,7 +104,6 @@ export default function DuolingoLearnPage() {
   const [loadingLessonDetail, setLoadingLessonDetail] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState<'theory' | 'vocab' | 'examples'>('theory');
 
-  // Load saved base language & completed lessons
   useEffect(() => {
     try {
       const savedLang = localStorage.getItem('tici_base_lang');
@@ -133,7 +119,6 @@ export default function DuolingoLearnPage() {
     return () => window.removeEventListener('tici-lang-change', onLangChange);
   }, []);
 
-  // Load Duolingo JSON for the selected base language
   useEffect(() => {
     setLoadingDuolingo(true);
     fetch(`/data/duolingo/english_from_${baseLang}.json`)
@@ -149,7 +134,6 @@ export default function DuolingoLearnPage() {
       });
   }, [baseLang, completedDuoSlugs]);
 
-  // Load DB CEFR courses & user session
   useEffect(() => {
     Promise.all([
       fetch('/api/courses').then((r) => r.json()),
@@ -162,6 +146,18 @@ export default function DuolingoLearnPage() {
         if (authData.authenticated && authData.user) {
           const userLvl = authData.user.profile?.currentLevel || 'A0';
           setSelectedLevel(userLvl);
+          if (authData.user.profile?.nativeLanguage) {
+            const code = authData.user.profile.nativeLanguage.toLowerCase().slice(0, 2);
+            const matched = DUOLINGO_BASE_LANGUAGES.find(
+              (l) =>
+                l.code === code ||
+                l.name.toLowerCase() === authData.user.profile.nativeLanguage.toLowerCase()
+            );
+            if (matched && !localStorage.getItem('tici_base_lang')) {
+              setBaseLang(matched.code);
+              localStorage.setItem('tici_base_lang', matched.code);
+            }
+          }
           setSession({
             id: authData.user.id,
             email: authData.user.email,
@@ -194,31 +190,12 @@ export default function DuolingoLearnPage() {
     } catch {}
   };
 
-  const playAudioUrlOrTts = (url?: string, text?: string, rate: number = 1.0) => {
-    if (typeof window === 'undefined') return;
-    if (url) {
-      try {
-        const audio = new Audio(url);
-        audio.playbackRate = rate;
-        audio.play().catch(() => {
-          if (text && window.speechSynthesis) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'en-US';
-            u.rate = rate;
-            window.speechSynthesis.speak(u);
-          }
-        });
-        return;
-      } catch {}
-    }
-    if (text && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = rate;
-      window.speechSynthesis.speak(u);
-    }
+  const playAudioUrlOrTts = (url?: string, text?: string, rate: number = 0.95) => {
+    speakRealisticText(text || '', {
+      rate,
+      audioUrl: url,
+      preferBrowserTTS: true,
+    });
   };
 
   const handleCompleteDuolingoLesson = (slug: string, xpEarned: number) => {
@@ -235,7 +212,6 @@ export default function DuolingoLearnPage() {
   const activeLangInfo = getBaseLanguageInfo(baseLang);
   const currentLevelData = levels.find((l) => l.code === selectedLevel) || levels[0];
 
-  // Combine Duolingo Native-to-English Basic Units with DB Units when on A0 (or display alongside)
   const combinedUnits =
     selectedLevel === 'A0'
       ? [...duolingoUnits, ...(currentLevelData?.courses || [])]
@@ -254,7 +230,6 @@ export default function DuolingoLearnPage() {
     setSelectedLessonModal(lesson);
     setActiveModalTab('theory');
 
-    // If this is a generated Duolingo Native-to-English lesson, its study guide is already embedded!
     if (lesson.isDuolingoNativeLesson) {
       setLessonDetail(lesson);
       setLoadingLessonDetail(false);
@@ -265,13 +240,16 @@ export default function DuolingoLearnPage() {
     setLessonDetail(null);
 
     try {
-      const res = await fetch(`/api/lessons/${lesson.slug}`);
+      const res = await fetch(`/api/lessons/${lesson.slug || lesson.id}`);
       const data = await res.json();
       if (data.lesson) {
         setLessonDetail(data.lesson);
+      } else {
+        setLessonDetail(lesson);
       }
     } catch (err) {
       console.error('Failed to load lesson detail:', err);
+      setLessonDetail(lesson);
     } finally {
       setLoadingLessonDetail(false);
     }
@@ -281,12 +259,10 @@ export default function DuolingoLearnPage() {
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 bg-grid-pattern">
       <Navbar />
 
-      {/* =====================================================================
-          TOP 3D DUOLINGO HUD: NATIVE LANGUAGE SELECTOR + CEFR LEVEL BAR
-         ===================================================================== */}
+      {/* TOP HUD: NATIVE LANGUAGE SELECTOR + CEFR LEVEL BAR */}
       <div className="sticky top-18 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b-2 border-slate-200/80 dark:border-slate-800/80 shadow-xs">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 py-3 space-y-2.5">
-          {/* Row 1: Native Language Bar ("I Speak: Hindi / Urdu / Spanish / ...") */}
+        <div className="w-full max-w-[1100px] mx-auto px-4 sm:px-6 py-3 space-y-2.5">
+          {/* Row 1: Native Language Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2 overflow-x-auto">
               <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
@@ -322,8 +298,17 @@ export default function DuolingoLearnPage() {
               </button>
             </div>
 
-            {/* 3D Gamified Stat Pills: Streak, Gems, Hearts */}
+            {/* Gamified Stat Pills + Quick Dashboard Link */}
             <div className="flex items-center gap-2 text-xs font-black">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100"
+                title="Open My Learning Dashboard"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </Link>
+
               <div
                 className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400"
                 title="Daily Learning Streak"
@@ -402,22 +387,21 @@ export default function DuolingoLearnPage() {
         </div>
       </div>
 
-      {/* =====================================================================
-          MAIN WORKSPACE: 3D STEPPING STONES PATH + GAMIFIED SIDEBAR
-         ===================================================================== */}
-      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-10 items-start">
-        {/* LEFT / CENTER: THE 3D DUOLINGO SNAKE PATH */}
-        <main className="flex-1 w-full flex flex-col items-center max-w-3xl mx-auto space-y-14">
-          {/* Active Native Language Course Header Card */}
-          {selectedLevel === 'A0' && (
-            <div className="w-full card-3d p-5 sm:p-6 bg-gradient-to-r from-emerald-50 via-white to-blue-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-blue-950/40 border-2 border-emerald-400/70 dark:border-emerald-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* CLEAN CENTERED LEARNING PATH (No Distracting Right Sidebar Mess) */}
+      <div className="flex-1 w-full max-w-[920px] mx-auto px-4 sm:px-6 py-8">
+        <main className="w-full flex flex-col items-center space-y-12">
+          {/* Active Native Language Course Header + Grammar Tip Banner */}
+          <div className="w-full card-3d p-5 sm:p-6 bg-gradient-to-r from-emerald-50 via-white to-blue-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-blue-950/40 border-2 border-emerald-400/70 dark:border-emerald-700 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border-2 border-emerald-300 dark:border-emerald-700 flex items-center justify-center text-3xl shadow-xs shrink-0">
                   {activeLangInfo.flag}
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-emerald-600 text-white">
-                    Active Course • 24 Basic Lessons + Phonics
+                    {selectedLevel === 'A0'
+                      ? 'Active Course • 24 Basic Lessons + Phonics'
+                      : `Stage ${selectedLevel} • ${currentLevelData?.title || 'English Curriculum'}`}
                   </span>
                   <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
                     {activeLangInfo.courseTitle}
@@ -433,10 +417,19 @@ export default function DuolingoLearnPage() {
                 onClick={() => setShowAllLangPicker(!showAllLangPicker)}
                 className="btn-3d-secondary text-xs font-extrabold px-4 py-2.5 rounded-xl shrink-0 cursor-pointer"
               >
-                Change Language
+                Change Native Language
               </button>
             </div>
-          )}
+
+            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-800/80 flex items-start gap-2.5 text-xs">
+              <span className="font-black text-emerald-700 dark:text-emerald-400 shrink-0">
+                💡 {activeLangInfo.name} → EN Tip:
+              </span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {activeLangInfo.grammarTip}
+              </span>
+            </div>
+          </div>
 
           {loading || (selectedLevel === 'A0' && loadingDuolingo) ? (
             <div className="p-20 text-center space-y-4">
@@ -456,7 +449,7 @@ export default function DuolingoLearnPage() {
 
               return (
                 <div key={unit.id} className="w-full flex flex-col items-center space-y-8">
-                  {/* 3D UNIT HEADER BANNER */}
+                  {/* UNIT HEADER BANNER */}
                   <div
                     className={`w-full rounded-3xl bg-gradient-to-r ${theme.bg} text-white p-6 sm:p-7 border-2 ${theme.border} ${theme.shadow} flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative overflow-hidden`}
                   >
@@ -468,7 +461,7 @@ export default function DuolingoLearnPage() {
                           {unit.title.includes(':') ? unit.title.split(':')[0] : `Unit ${uIdx + 1}`}
                         </span>
                         <span className="text-xs font-extrabold text-white/85">
-                          • {lessons.length} Interactive Lessons • Audio & Word Bank
+                          • {lessons.length} Interactive Lessons • Study Material & Audio
                         </span>
                       </div>
                       <h2 className="text-xl sm:text-2xl font-black tracking-tight">
@@ -479,7 +472,6 @@ export default function DuolingoLearnPage() {
                       </p>
                     </div>
 
-                    {/* 3D TACTILE GUIDEBOOK BUTTON */}
                     <button
                       type="button"
                       onClick={() => setActiveGuidebook(unit)}
@@ -490,7 +482,7 @@ export default function DuolingoLearnPage() {
                     </button>
                   </div>
 
-                  {/* THE 3D STEPPING STONES PATH */}
+                  {/* STEPPING STONES PATH */}
                   <div className="py-6 flex flex-col items-center space-y-6 w-full relative">
                     {lessons.map((lesson: any, lIdx: number) => {
                       const isCompleted =
@@ -511,7 +503,6 @@ export default function DuolingoLearnPage() {
                           <div
                             className={`relative flex flex-col items-center transition-transform duration-300 ${offsetClass}`}
                           >
-                            {/* FLOATING 3D ACTIVE TOOLTIP */}
                             {isFirstIncomplete && uIdx === 0 && (
                               <button
                                 type="button"
@@ -526,7 +517,6 @@ export default function DuolingoLearnPage() {
                               </button>
                             )}
 
-                            {/* CIRCULAR 3D STEPPING STONE NODE (ALL UNLOCKED FOR INSTANT STUDY & PRACTICE!) */}
                             <div className="relative flex items-center justify-center">
                               {isFirstIncomplete && uIdx === 0 && (
                                 <span className="absolute inset-0 rounded-full bg-emerald-400/40 animate-pulse-ring pointer-events-none" />
@@ -540,7 +530,7 @@ export default function DuolingoLearnPage() {
                                     ? 'bg-gradient-to-b from-amber-300 to-amber-500 border-4 border-amber-200 text-white shadow-[0_8px_0_0_#b45309,0_14px_24px_rgba(217,119,6,0.35)]'
                                     : 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-4 border-emerald-300 text-white shadow-[0_8px_0_0_#047857,0_14px_24px_rgba(5,150,105,0.4)]'
                                 }`}
-                                title="Tap to open Study Guide or Start Practice"
+                                title="Tap to open Learning Material or Start Practice"
                               >
                                 {isCompleted ? (
                                   <CheckCircle2 className="w-10 h-10 fill-white text-amber-500 drop-shadow-xs" />
@@ -550,8 +540,8 @@ export default function DuolingoLearnPage() {
                               </button>
                             </div>
 
-                            {/* 3D Lesson Pill Label & Direct Action Buttons */}
-                            <div className="mt-3 p-2.5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] flex flex-col items-center max-w-[230px] text-center space-y-1.5">
+                            {/* Lesson Pill Label & Direct Action Buttons */}
+                            <div className="mt-3 p-3 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] flex flex-col items-center max-w-[240px] text-center space-y-1.5">
                               <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug">
                                 {lesson.title}
                               </span>
@@ -566,7 +556,7 @@ export default function DuolingoLearnPage() {
                                   onClick={() => handleOpenLessonModal(lesson)}
                                   className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-black hover:bg-blue-100 cursor-pointer"
                                 >
-                                  📖 Study
+                                  📖 Study Material
                                 </button>
                                 {lesson.isDuolingoNativeLesson ? (
                                   <button
@@ -590,7 +580,6 @@ export default function DuolingoLearnPage() {
                             </div>
                           </div>
 
-                          {/* OPTIONAL 3D MYSTERY CHEST MILESTONE */}
                           {showChest && (
                             <div className="relative flex flex-col items-center my-2 translate-x-6">
                               <button
@@ -614,7 +603,7 @@ export default function DuolingoLearnPage() {
                       );
                     })}
 
-                    {/* FINAL 3D UNIT TROPHY STEPPING STONE */}
+                    {/* UNIT TROPHY STEPPING STONE */}
                     <div className="w-1 h-6 border-l-4 border-dashed border-slate-300 dark:border-slate-700 -my-2" />
                     <div className="relative flex flex-col items-center pt-2">
                       <div className="stone-shine w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-gradient-to-b from-blue-700 to-blue-950 border-4 border-blue-500 text-amber-300 shadow-[0_8px_0_0_#172554,0_15px_25px_rgba(30,58,138,0.4)] flex items-center justify-center">
@@ -630,153 +619,12 @@ export default function DuolingoLearnPage() {
             })
           )}
         </main>
-
-        {/* RIGHT SIDEBAR: NATIVE GRAMMAR TIP, DAILY QUESTS & LEADERBOARD */}
-        <aside className="w-full lg:w-84 space-y-6 shrink-0 lg:sticky lg:top-42">
-          {/* Native Language Grammar & Study Card */}
-          <div className="card-3d p-5 bg-gradient-to-br from-emerald-50 to-teal-50/70 dark:from-emerald-950/40 dark:to-slate-900 border-2 border-emerald-300 dark:border-emerald-800/80 space-y-2.5">
-            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-black text-xs uppercase tracking-wider">
-              <span>{activeLangInfo.flag}</span>
-              <span>{activeLangInfo.name} → English Tip</span>
-            </div>
-            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
-              {activeLangInfo.grammarTip}
-            </p>
-          </div>
-
-          {/* 3D Daily Quests Card */}
-          <div className="card-3d p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Target className="w-4 h-4 text-amber-500" />
-                <span>Daily Quests</span>
-              </h3>
-              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400">
-                Resets in 6h
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-extrabold">
-                  <span className="text-slate-700 dark:text-slate-200">⚡ Earn 50 XP today</span>
-                  <span className="text-amber-600 dark:text-amber-400">30 / 50</span>
-                </div>
-                <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700">
-                  <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full w-3/5" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-extrabold">
-                  <span className="text-slate-700 dark:text-slate-200">
-                    🎯 Complete { completedDuoSlugs.length } / 4 Basic Lessons
-                  </span>
-                  <span className="text-blue-600 dark:text-blue-400">
-                    {Math.min(4, completedDuoSlugs.length)} / 4
-                  </span>
-                </div>
-                <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (completedDuoSlugs.length / 4) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3D Emerald League Leaderboard Card */}
-          <div className="card-3d p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Award className="w-4 h-4 text-emerald-600" />
-                <span>Emerald League</span>
-              </h3>
-              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                Top 3 Advance
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-900/50">
-                <div className="flex items-center gap-2 font-black text-slate-900 dark:text-white">
-                  <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-[10px]">
-                    1
-                  </span>
-                  <span>Sofia Rodriguez 🇪🇸</span>
-                </div>
-                <span className="font-black text-amber-700 dark:text-amber-400">1,420 XP</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200">
-                  <span className="w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 flex items-center justify-center text-[10px] font-black">
-                    2
-                  </span>
-                  <span>Muhammad Ali 🇵🇰</span>
-                </div>
-                <span className="font-extrabold text-slate-600 dark:text-slate-400">1,150 XP</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200">
-                  <span className="w-5 h-5 rounded-full bg-amber-700/20 text-amber-800 dark:text-amber-300 flex items-center justify-center text-[10px] font-black">
-                    3
-                  </span>
-                  <span>Priya Sharma 🇮🇳</span>
-                </div>
-                <span className="font-extrabold text-slate-600 dark:text-slate-400">980 XP</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3D Practice Studios Grid */}
-          <div className="card-3d p-6 space-y-3 text-xs">
-            <h4 className="font-black text-sm text-slate-900 dark:text-white">
-              3D Practice Studios
-            </h4>
-            <div className="grid grid-cols-2 gap-2.5">
-              <Link
-                href="/speaking"
-                className="btn-3d-secondary p-3 rounded-xl font-extrabold text-center flex flex-col items-center gap-1.5"
-              >
-                <Mic className="w-4 h-4 text-emerald-600" />
-                <span>Speaking Lab</span>
-              </Link>
-              <Link
-                href="/reading"
-                className="btn-3d-secondary p-3 rounded-xl font-extrabold text-center flex flex-col items-center gap-1.5"
-              >
-                <Globe className="w-4 h-4 text-blue-600" />
-                <span>Wikipedia Lab</span>
-              </Link>
-              <Link
-                href="/vocabulary"
-                className="btn-3d-secondary p-3 rounded-xl font-extrabold text-center flex flex-col items-center gap-1.5"
-              >
-                <BookmarkCheck className="w-4 h-4 text-amber-500" />
-                <span>SRS Vocab</span>
-              </Link>
-              <Link
-                href="/ai-coach"
-                className="btn-3d-secondary p-3 rounded-xl font-extrabold text-center flex flex-col items-center gap-1.5"
-              >
-                <Brain className="w-4 h-4 text-indigo-600" />
-                <span>AI Coach</span>
-              </Link>
-            </div>
-          </div>
-        </aside>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 🌟 3D DUOLINGO LESSON PREVIEW & FULL STUDY MATERIAL MODAL                 */}
-      {/* ========================================================================= */}
+      {/* LESSON PREVIEW & FULL STUDY MATERIAL MODAL */}
       {selectedLessonModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
           <div className="card-3d w-full max-w-2xl flex flex-col max-h-[92vh] overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-2xl">
-            {/* Modal Header */}
             <div className="p-5 sm:p-6 border-b-2 border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50/80 dark:bg-slate-900/80">
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -810,7 +658,7 @@ export default function DuolingoLearnPage() {
               </button>
             </div>
 
-            {/* Modal 3D Tabs */}
+            {/* Modal Tabs */}
             <div className="flex items-center border-b-2 border-slate-100 dark:border-slate-800 px-6 bg-white dark:bg-slate-900 text-xs font-extrabold gap-6 overflow-x-auto">
               <button
                 type="button"
@@ -859,7 +707,6 @@ export default function DuolingoLearnPage() {
                 </div>
               ) : (
                 <>
-                  {/* TAB 1: THEORY & NATIVE EXPLANATION */}
                   {activeModalTab === 'theory' && (
                     <div className="space-y-5">
                       {lessonDetail?.objectives?.length > 0 && (
@@ -894,24 +741,21 @@ export default function DuolingoLearnPage() {
                         )}
                       </div>
 
-                      {lessonDetail?.grammarNotes && (
-                        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-900 space-y-1.5 text-xs">
-                          <span className="font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
-                            💡 {activeLangInfo.flag} Grammar Tip ({activeLangInfo.nativeName}):
-                          </span>
-                          <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">
-                            {lessonDetail.grammarNotes}
-                          </p>
-                        </div>
-                      )}
+                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-900 space-y-1.5 text-xs">
+                        <span className="font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                          💡 {activeLangInfo.flag} Grammar Tip ({activeLangInfo.nativeName}):
+                        </span>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">
+                          {lessonDetail?.grammarNotes || activeLangInfo.grammarTip}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  {/* TAB 2: VOCABULARY & REAL DUOLINGO AUDIO */}
                   {activeModalTab === 'vocab' && (
                     <div className="space-y-4">
                       <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                        🔊 Vocabulary Word Bank (Tap Speaker for Real Duolingo Audio):
+                        🔊 Vocabulary Word Bank (Tap Speaker for Pronunciation):
                       </span>
 
                       {lessonDetail?.vocabularyWords?.length > 0 ? (
@@ -946,12 +790,17 @@ export default function DuolingoLearnPage() {
                                       {wordObj.definition}
                                     </p>
                                   )}
+                                  {wordObj.exampleSentence && (
+                                    <p className="text-[11px] italic text-slate-500 dark:text-slate-400">
+                                      &ldquo;{wordObj.exampleSentence}&rdquo;
+                                    </p>
+                                  )}
                                 </div>
 
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    playAudioUrlOrTts(wordObj.tts, wordObj.word, 1.0)
+                                    playAudioUrlOrTts(wordObj.tts, wordObj.word, 0.92)
                                   }
                                   className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 shadow-[0_3px_0_0_#1e3a8a] cursor-pointer"
                                   title="Play word pronunciation"
@@ -968,11 +817,10 @@ export default function DuolingoLearnPage() {
                     </div>
                   )}
 
-                  {/* TAB 3: CONVERSATIONAL SENTENCES + NORMAL & SLOW TURTLE AUDIO */}
                   {activeModalTab === 'examples' && (
                     <div className="space-y-4">
                       <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                        💬 Sentences in this Lesson (Normal 🔊 & Slow Turtle 🐢 Audio):
+                        💬 Sentences in this Lesson (Normal 🔊 & Slow 🐢 Audio):
                       </span>
 
                       {lessonDetail?.examples?.length > 0 ? (
@@ -992,7 +840,7 @@ export default function DuolingoLearnPage() {
                                 )}
                                 <div className="space-y-1">
                                   <p className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-                                    "{ex.phrase}"
+                                    &ldquo;{ex.phrase}&rdquo;
                                   </p>
                                   <p className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
                                     {ex.translation}
@@ -1009,7 +857,7 @@ export default function DuolingoLearnPage() {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    playAudioUrlOrTts(ex.tts, ex.phrase, 1.0)
+                                    playAudioUrlOrTts(ex.tts, ex.phrase, 0.95)
                                   }
                                   className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-[0_3px_0_0_#1e3a8a] cursor-pointer"
                                   title="Listen Normal Speed"
@@ -1022,7 +870,7 @@ export default function DuolingoLearnPage() {
                                     playAudioUrlOrTts(ex.tts, ex.phrase, 0.65)
                                   }
                                   className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-sm flex items-center justify-center cursor-pointer"
-                                  title="Listen Slow (Turtle Speed)"
+                                  title="Listen Slow (0.65x Speed)"
                                 >
                                   🐢
                                 </button>
@@ -1063,7 +911,7 @@ export default function DuolingoLearnPage() {
                   className="w-full sm:flex-1 py-4 rounded-2xl btn-3d-emerald font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 text-center"
                 >
                   <Play className="w-4 h-4 fill-white" />
-                  <span>START DUOLINGO PRACTICE (+{selectedLessonModal.xpReward || 15} XP)</span>
+                  <span>START INTERACTIVE PRACTICE (+{selectedLessonModal.xpReward || 15} XP)</span>
                 </Link>
               )}
               <button
@@ -1078,9 +926,7 @@ export default function DuolingoLearnPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 🎮 INTERACTIVE DUOLINGO PRACTICE MODAL (TRANSLATE, LISTEN, SPEAK, NAME)   */}
-      {/* ========================================================================= */}
+      {/* INTERACTIVE DUOLINGO PRACTICE MODAL */}
       {activePracticeLesson && (
         <DuolingoPracticeModal
           lesson={activePracticeLesson}
@@ -1089,9 +935,7 @@ export default function DuolingoLearnPage() {
         />
       )}
 
-      {/* ========================================================================= */}
-      {/* 📘 REAL UNIT GUIDEBOOK & CHEAT SHEET MODAL                                */}
-      {/* ========================================================================= */}
+      {/* UNIT GUIDEBOOK & CHEAT SHEET MODAL */}
       {activeGuidebook && (
         <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
           <div className="card-3d w-full max-w-2xl p-6 sm:p-8 space-y-6 max-h-[88vh] overflow-y-auto">
@@ -1117,7 +961,6 @@ export default function DuolingoLearnPage() {
             </div>
 
             <div className="space-y-6 text-sm">
-              {/* Dynamically show examples from the unit's lessons if available */}
               <div className="space-y-3">
                 <h4 className="font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-blue-700 dark:text-blue-400" />
@@ -1130,14 +973,14 @@ export default function DuolingoLearnPage() {
                       className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3"
                     >
                       <div>
-                        <p className="font-black text-slate-900 dark:text-white">"{ex.phrase}"</p>
+                        <p className="font-black text-slate-900 dark:text-white">&ldquo;{ex.phrase}&rdquo;</p>
                         <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
                           {ex.translation}
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => playAudioUrlOrTts(ex.tts, ex.phrase, 1.0)}
+                        onClick={() => playAudioUrlOrTts(ex.tts, ex.phrase, 0.95)}
                         className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer"
                       >
                         <Volume2 className="w-4 h-4" />
@@ -1172,31 +1015,25 @@ export default function DuolingoLearnPage() {
       )}
 
       {/* MYSTERY CHEST REWARD MODAL */}
-      {chestModalReward && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card-3d w-full max-w-sm p-6 text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center mx-auto shadow-[0_4px_0_0_#fde68a]">
-              <Gift className="w-9 h-9" />
+      {chestModalReward !== null && (
+        <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in zoom-in-95 duration-150">
+          <div className="card-3d max-w-sm w-full p-8 text-center space-y-5">
+            <div className="w-20 h-20 rounded-3xl bg-amber-100 dark:bg-amber-950 text-amber-500 flex items-center justify-center mx-auto shadow-[0_6px_0_0_#b45309]">
+              <Gift className="w-11 h-11" />
             </div>
-            <h3 className="text-xl font-black text-slate-900 dark:text-white">
-              Bonus Chest Unlocked!
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+              Mystery Chest Unlocked!
             </h3>
-            <p className="text-xs font-medium text-slate-500">
-              You unlocked an exploratory milestone on the 3D learning path.
+            <p className="text-sm text-slate-600 dark:text-slate-300 font-semibold">
+              You earned <span className="text-cyan-600 dark:text-cyan-400 font-black">+{chestModalReward} Gems</span> for your learning consistency!
             </p>
-            <div className="inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-black px-4 py-2 rounded-xl border-2 border-amber-200 dark:border-amber-900">
-              <Gem className="w-5 h-5 fill-amber-500 text-amber-500" />
-              <span>+{chestModalReward} Gems Awarded!</span>
-            </div>
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setChestModalReward(null)}
-                className="w-full btn-3d-primary text-xs py-3.5 rounded-xl cursor-pointer"
-              >
-                CLAIM & CONTINUE
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setChestModalReward(null)}
+              className="w-full py-3.5 rounded-2xl btn-3d-emerald font-black text-xs uppercase tracking-wider cursor-pointer"
+            >
+              Claim Reward
+            </button>
           </div>
         </div>
       )}

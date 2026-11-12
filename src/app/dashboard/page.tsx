@@ -80,7 +80,7 @@ export default function DashboardPage() {
                   Welcome back, {session?.name?.split(' ')[0] || 'Learner'} 👋
                 </span>
                 <h1 className="text-2xl sm:text-4xl font-black mt-2.5 tracking-tight">
-                  3D Academic Progress Hub
+                  Academic Progress Hub
                 </h1>
                 <p className="text-xs sm:text-sm text-blue-100/90 mt-1 max-w-xl font-medium">
                   Current Standing: <strong className="text-amber-300 font-black">CEFR Level {level}</strong>. Continue your interactive stepping stones, speaking labs, and vocabulary flashcards.
@@ -119,7 +119,7 @@ export default function DashboardPage() {
                 href="/learn"
                 className="btn-3d-amber px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 self-stretch sm:self-auto shrink-0"
               >
-                <span>Continue 3D Path</span>
+                <span>Continue Learn Path</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                   <Compass className="w-6 h-6" />
                 </div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <h3 className="font-black text-base text-slate-900 dark:text-white">3D Learn Path</h3>
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">Learn Path</h3>
                   <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-400 text-slate-950">
                     POPULAR
                   </span>

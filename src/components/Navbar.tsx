@@ -17,13 +17,12 @@ import {
   LogOut,
   ChevronDown,
   Search,
-  GraduationCap,
   ShieldCheck,
   Globe,
   Award,
-  Star,
-  Flame,
-  Compass
+  Compass,
+  LayoutDashboard,
+  Bell,
 } from 'lucide-react';
 import { UserSession } from '@/types';
 import {
@@ -42,6 +41,11 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
 
+  // Notifications state
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
+
   // Native Base Language Selector State (23 Duolingo Languages)
   const [baseLang, setBaseLang] = useState<string>('hi');
   const [langModalOpen, setLangModalOpen] = useState(false);
@@ -50,6 +54,8 @@ export default function Navbar() {
     try {
       const saved = localStorage.getItem('tici_base_lang');
       if (saved) setBaseLang(saved);
+      const savedRead = localStorage.getItem('tici_read_notifs');
+      if (savedRead) setReadNotifIds(JSON.parse(savedRead));
     } catch {}
 
     const onLangChange = (e: any) => {
@@ -68,6 +74,15 @@ export default function Navbar() {
         new CustomEvent('tici-lang-change', { detail: { lang: code } })
       );
     } catch {}
+
+    // If user is logged in, persist nativeLanguage in their profile automatically
+    if (session) {
+      fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nativeLanguage: code }),
+      }).catch(() => {});
+    }
   };
 
   const activeLangInfo = getBaseLanguageInfo(baseLang);
@@ -86,10 +101,48 @@ export default function Navbar() {
             plan: data.user.subscription?.plan || 'FREE',
             onboardingCompleted: data.user.profile?.onboardingCompleted ?? true,
           });
+          const profLang = data.user.profile?.nativeLanguage;
+          if (profLang) {
+            const matched = DUOLINGO_BASE_LANGUAGES.find(
+              (l) =>
+                l.code === profLang.toLowerCase() ||
+                l.name.toLowerCase() === profLang.toLowerCase()
+            );
+            if (matched) {
+              setBaseLang(matched.code);
+              try {
+                localStorage.setItem('tici_base_lang', matched.code);
+              } catch {}
+            }
+          }
+        } else {
+          setSession(null);
         }
       })
       .catch(() => {});
+
+    fetch('/api/notifications')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.notifications) setNotifications(data.notifications);
+      })
+      .catch(() => {});
   }, [pathname]);
+
+  const unreadCount = notifications.filter((n) => !readNotifIds.includes(n.id)).length;
+
+  const handleOpenNotifs = () => {
+    const nextOpen = !notifDropdownOpen;
+    setNotifDropdownOpen(nextOpen);
+    setUserDropdownOpen(false);
+    if (nextOpen && notifications.length > 0) {
+      const allIds = notifications.map((n) => n.id);
+      setReadNotifIds(allIds);
+      try {
+        localStorage.setItem('tici_read_notifs', JSON.stringify(allIds));
+      } catch {}
+    }
+  };
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -111,17 +164,19 @@ export default function Navbar() {
     }
   };
 
+  const isAdmin = session?.role === 'ADMIN';
+
   return (
     <>
-      <nav className="sticky top-0 z-40 w-full border-b-2 border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl transition-all">
+      <nav className="sticky top-0 z-40 w-full border-b-2 border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl transition-all">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex items-center justify-between h-18 py-2.5">
-            {/* Larger Clean Direct Brand Logo (No Blue Box) */}
+            {/* Brand Logo */}
             <Link href="/" className="flex items-center gap-3.5 group">
               <img
                 src="/images/brand/logo-tici.png"
                 alt="TICI EnglishMiami Logo"
-                className="w-16 h-16 object-contain transition-transform duration-200 group-hover:scale-105"
+                className="w-15 h-15 object-contain transition-transform duration-200 group-hover:scale-105"
               />
               <div className="flex flex-col">
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
@@ -206,17 +261,32 @@ export default function Navbar() {
                 <span>Meet Founder</span>
               </Link>
 
+              {/* Show Dashboard button for non-admins (and both Dashboard + Admin for admins) */}
               <Link
-                href="/admin"
+                href="/dashboard"
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-                  pathname.startsWith('/admin')
+                  pathname.startsWith('/dashboard')
                     ? 'bg-blue-700 text-white shadow-[0_3px_0_0_#1e3a8a]'
                     : 'bg-blue-50 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
               </Link>
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                    pathname.startsWith('/admin')
+                      ? 'bg-indigo-700 text-white shadow-[0_3px_0_0_#312e81]'
+                      : 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </Link>
+              )}
             </div>
 
             {/* Right Action Icons & Auth */}
@@ -234,7 +304,68 @@ export default function Navbar() {
                 <ChevronDown className="w-3.5 h-3.5 opacity-70" />
               </button>
 
-              {/* Tactile Search Pill */}
+              {/* Notification Bell Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={handleOpenNotifs}
+                  className="relative p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white shadow-[0_3px_0_0_#e2e8f0] dark:shadow-[0_3px_0_0_#1e293b] hover:-translate-y-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                  title="Announcements & Notifications"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {notifDropdownOpen && (
+                  <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-4 pb-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                        🔔 Announcements & Updates
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setNotifDropdownOpen(false)}
+                        className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      {notifications.length === 0 ? (
+                        <p className="text-xs text-slate-500 text-center py-6">
+                          No announcements yet.
+                        </p>
+                      ) : (
+                        notifications.map((n) => (
+                          <div key={n.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 space-y-1.5">
+                            <div className="font-extrabold text-xs text-slate-900 dark:text-white">
+                              {n.title}
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                              {n.message}
+                            </p>
+                            {n.actionUrl && (
+                              <Link
+                                href={n.actionUrl}
+                                onClick={() => setNotifDropdownOpen(false)}
+                                className="inline-block text-[11px] font-black text-blue-600 dark:text-blue-400 hover:underline pt-0.5"
+                              >
+                                {n.actionLabel || 'Open'} →
+                              </Link>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Search Pill */}
               <button
                 onClick={() => setSearchModalOpen(true)}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white shadow-[0_3px_0_0_#e2e8f0] dark:shadow-[0_3px_0_0_#1e293b] hover:-translate-y-0.5 active:translate-y-0.5 transition-all text-xs font-bold cursor-pointer"
@@ -244,7 +375,7 @@ export default function Navbar() {
                 <span className="hidden xl:inline">Search...</span>
               </button>
 
-              {/* Theme Toggle 3D Button */}
+              {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
                 className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white shadow-[0_3px_0_0_#e2e8f0] dark:shadow-[0_3px_0_0_#1e293b] hover:-translate-y-0.5 active:translate-y-0.5 transition-all cursor-pointer"
@@ -261,7 +392,10 @@ export default function Navbar() {
               {session ? (
                 <div className="relative">
                   <button
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    onClick={() => {
+                      setUserDropdownOpen(!userDropdownOpen);
+                      setNotifDropdownOpen(false);
+                    }}
                     className="flex items-center gap-2 p-1.5 pl-3 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 bg-white dark:bg-slate-900 shadow-[0_3px_0_0_#e2e8f0] dark:shadow-[0_3px_0_0_#1e293b] hover:-translate-y-0.5 transition-all cursor-pointer"
                   >
                     <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
@@ -291,7 +425,7 @@ export default function Navbar() {
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
-                        <BookOpen className="w-4 h-4 text-blue-600" />
+                        <LayoutDashboard className="w-4 h-4 text-blue-600" />
                         My Learning Dashboard
                       </Link>
 
@@ -301,7 +435,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                       >
                         <Compass className="w-4 h-4 text-emerald-600" />
-                        3D Duolingo Path
+                        Duolingo Learning Path
                       </Link>
 
                       <Link
@@ -319,7 +453,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
                         <User className="w-4 h-4 text-slate-500" />
-                        Profile & Settings
+                        Profile & Language Settings
                       </Link>
 
                       <Link
@@ -331,7 +465,7 @@ export default function Navbar() {
                         Subscription & Billing
                       </Link>
 
-                      {session.role === 'ADMIN' && (
+                      {isAdmin && (
                         <Link
                           href="/admin"
                           onClick={() => setUserDropdownOpen(false)}
@@ -345,7 +479,7 @@ export default function Navbar() {
                       <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-left cursor-pointer"
                         >
                           <LogOut className="w-4 h-4" />
                           Sign Out
@@ -355,16 +489,16 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <Link
                     href="/login"
-                    className="btn-3d-secondary text-xs font-extrabold px-4 py-2.5 rounded-xl hidden sm:inline-block"
+                    className="btn-3d-secondary text-xs font-extrabold px-3.5 py-2 rounded-xl hidden sm:inline-block"
                   >
                     Log In
                   </Link>
                   <Link
                     href="/signup"
-                    className="btn-3d-primary text-xs font-extrabold px-4 py-2.5 rounded-xl"
+                    className="btn-3d-primary text-xs font-extrabold px-4 py-2 rounded-xl"
                   >
                     Start Free
                   </Link>
@@ -391,7 +525,15 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-extrabold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400"
             >
               <Compass className="w-4 h-4" />
-              3D Learn Path
+              Learn Path
+            </Link>
+            <Link
+              href="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              My Dashboard
             </Link>
             <Link
               href="/courses"
@@ -405,7 +547,7 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              Reading & Wikipedia Lab
+              Reading & Wikipedia Cards
             </Link>
             <Link
               href="/speaking"
@@ -419,7 +561,7 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              AI Coach
+              Miami AI Coach
             </Link>
             <Link
               href="/founder"
@@ -435,14 +577,16 @@ export default function Navbar() {
             >
               Tuition Plans
             </Link>
-            <Link
-              href="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Admin Panel
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Admin Panel
+              </Link>
+            )}
             <Link
               href="/placement-test"
               onClick={() => setMobileMenuOpen(false)}
@@ -546,12 +690,12 @@ export default function Navbar() {
                   {searchResults.lessons?.length === 0 &&
                     searchResults.vocabulary?.length === 0 &&
                     searchResults.grammar?.length === 0 && (
-                      <p className="text-sm text-slate-500 text-center py-6">No results found for "{searchQuery}".</p>
+                      <p className="text-sm text-slate-500 text-center py-6">No results found for &ldquo;{searchQuery}&rdquo;.</p>
                     )}
                 </>
               ) : (
                 <div className="text-center py-6 text-sm text-slate-400">
-                  Type a concept like <span className="text-blue-600 font-bold">"Past Simple"</span>, <span className="text-blue-600 font-bold">"Alphabet"</span>, or <span className="text-blue-600 font-bold">"Greetings"</span> and press Enter.
+                  Type a concept like <span className="text-blue-600 font-bold">&ldquo;Past Simple&rdquo;</span>, <span className="text-blue-600 font-bold">&ldquo;Alphabet&rdquo;</span>, or <span className="text-blue-600 font-bold">&ldquo;Greetings&rdquo;</span> and press Enter.
                 </div>
               )}
             </div>
@@ -578,7 +722,7 @@ export default function Navbar() {
                   I Speak... (Select Your Native Language)
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  We will teach you English step-by-step from your selected native language (e.g. Hindi → English, Urdu → English, Español → English).
+                  We will teach you English step-by-step from your selected native language (saved automatically to your account).
                 </p>
               </div>
               <button

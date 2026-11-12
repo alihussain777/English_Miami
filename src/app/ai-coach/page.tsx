@@ -216,9 +216,11 @@ export default function AICoachPage() {
           {/* Header Card */}
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between mb-3 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-sm">
-                <Brain className="w-6 h-6 text-blue-200" />
-              </div>
+              <img
+                src="/images/brand/logo-tici.png"
+                alt="TICI Miami AI Logo"
+                className="w-10 h-10 object-contain shrink-0"
+              />
               <div>
                 <h1 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Miami AI Academic Coach</span>
@@ -333,15 +335,17 @@ export default function AICoachPage() {
                 className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {m.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center flex-shrink-0 text-sm">
-                    🌴
-                  </div>
+                  <img
+                    src="/images/brand/logo-tici.png"
+                    alt="Miami AI"
+                    className="w-9 h-9 object-contain flex-shrink-0 mt-0.5"
+                  />
                 )}
 
                 <div
                   className={`max-w-[85%] rounded-3xl p-4 text-sm leading-relaxed space-y-2 ${
                     m.role === 'user'
-                      ? 'bg-teal-500 text-white rounded-br-none shadow-sm'
+                      ? 'bg-blue-700 text-white rounded-br-none shadow-sm'
                       : 'bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-bl-none'
                   }`}
                 >
@@ -355,7 +359,7 @@ export default function AICoachPage() {
 
                   {m.role === 'assistant' && (
                     <div className="pt-1 flex items-center justify-end">
-                      <TextToSpeechButton text={m.content} size="sm" />
+                      <TextToSpeechButton text={m.content} size="sm" showSpeedControl />
                     </div>
                   )}
                 </div>
