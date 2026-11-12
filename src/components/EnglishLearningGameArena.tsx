@@ -14,14 +14,14 @@ import {
   Pause,
   CheckCircle2,
   XCircle,
-  Lightbulb,
-  Timer,
-  Puzzle,
   Crosshair,
-  Rocket,
   Hammer,
   Car,
   Utensils,
+  Scissors,
+  Swords,
+  Anchor,
+  Sparkles,
 } from 'lucide-react';
 import {
   playSuccessSound,
@@ -35,115 +35,325 @@ import {
 import { speakRealisticText } from '@/lib/voice-engine';
 
 type GameMode =
-  | 'laser'
+  | 'sniper'
+  | 'bomb'
+  | 'fighter'
+  | 'pirate'
+  | 'ninja'
   | 'zombie'
   | 'shark'
-  | 'racer'
-  | 'blitz'
-  | 'scramble';
+  | 'racer';
 
 // ============================================================================
-// 1. SPACE LASER WORD SHOOTER MISSIONS (REAL PLAYABLE FIRING GAME)
+// 1. 🎯 SNIPER SCOPE: MOVING TARGET SHOOTER (REAL AIM & RELOAD FIRING GAME)
 // ============================================================================
-interface LaserMission {
-  prompt: string;
-  targets: { word: string; isCorrect: boolean }[];
+interface SniperWave {
+  mission: string;
+  targets: { word: string; isCorrect: boolean; row: number; speed: number }[];
   spokenSuccess: string;
   explanation: string;
 }
 
-const LASER_MISSIONS: LaserMission[] = [
+const SNIPER_WAVES: SniperWave[] = [
   {
-    prompt: '🔥 SHOOT THE SYNONYM OF "BRAVE"!',
+    mission: '🎯 SNIPE THE CORRECT SPELLING! (Watch out — targets are moving!)',
     targets: [
-      { word: 'Timid', isCorrect: false },
-      { word: 'Courageous', isCorrect: true },
-      { word: 'Sleepy', isCorrect: false },
-      { word: 'Careless', isCorrect: false },
+      { word: 'Definately', isCorrect: false, row: 0, speed: 1.2 },
+      { word: 'Definitely', isCorrect: true, row: 1, speed: -1.4 },
+      { word: 'Definitly', isCorrect: false, row: 2, speed: 1.1 },
+      { word: 'Definetely', isCorrect: false, row: 0, speed: -1.0 },
     ],
-    spokenSuccess: 'Courageous! Brave and courageous mean having no fear.',
-    explanation: '"Courageous" (/kəˈreɪ.dʒəs/) is a powerful synonym for "Brave".',
+    spokenSuccess: 'Bullseye! Definitely! D-E-F-I-N-I-T-E-L-Y.',
+    explanation: '"Definitely" has "finite" in the middle — two I’s and zero A’s!',
   },
   {
-    prompt: '🔥 SHOOT THE CORRECT PAST TENSE OF "TEACH"!',
+    mission: '🎯 SNIPE THE IRREGULAR PAST TENSE OF "CATCH"!',
     targets: [
-      { word: 'Teached', isCorrect: false },
-      { word: 'Taught', isCorrect: true },
-      { word: 'Touchen', isCorrect: false },
-      { word: 'Teaching', isCorrect: false },
+      { word: 'Catched', isCorrect: false, row: 0, speed: 1.3 },
+      { word: 'Caught', isCorrect: true, row: 1, speed: -1.5 },
+      { word: 'Cotched', isCorrect: false, row: 2, speed: 1.2 },
+      { word: 'Catching', isCorrect: false, row: 2, speed: -1.1 },
     ],
-    spokenSuccess: 'Taught! Jason taught the English class yesterday.',
-    explanation: 'The irregular past tense of "teach" is "taught" (never "teached"!).',
+    spokenSuccess: 'Sniper Hit! Caught! He caught the ball with one hand.',
+    explanation: 'The past tense of "catch" is "caught" (/kɔːt/), never "catched"!',
   },
   {
-    prompt: '🔥 SHOOT THE CORRECT SPELLING!',
+    mission: '🎯 SNIPE THE WORD THAT MEANS "VERY BRAVE & FEARLESS"!',
     targets: [
-      { word: 'Definitly', isCorrect: false },
-      { word: 'Definately', isCorrect: false },
-      { word: 'Definitely', isCorrect: true },
-      { word: 'Definetely', isCorrect: false },
+      { word: 'Cowardly', isCorrect: false, row: 0, speed: -1.2 },
+      { word: 'Courageous', isCorrect: true, row: 1, speed: 1.5 },
+      { word: 'Hesitant', isCorrect: false, row: 2, speed: -1.3 },
+      { word: 'Clumsy', isCorrect: false, row: 0, speed: 1.0 },
     ],
-    spokenSuccess: 'Definitely! D-E-F-I-N-I-T-E-L-Y. I will definitely pass the exam.',
-    explanation: 'Remember: "Definitely" has "finite" in the middle (two I’s, no A!).',
+    spokenSuccess: 'Headshot! Courageous! Firefighters are very courageous.',
+    explanation: '"Courageous" means brave and fearless in difficult situations.',
   },
   {
-    prompt: '🔥 SHOOT THE OPPOSITE (ANTONYM) OF "GENEROUS"!',
+    mission: '🎯 SNIPE THE WORD THAT FITS: "I look forward to ___ you!"',
     targets: [
-      { word: 'Kind', isCorrect: false },
-      { word: 'Selfish', isCorrect: true },
-      { word: 'Polite', isCorrect: false },
-      { word: 'Wealthy', isCorrect: false },
+      { word: 'meet', isCorrect: false, row: 0, speed: 1.4 },
+      { word: 'meeting', isCorrect: true, row: 1, speed: -1.3 },
+      { word: 'met', isCorrect: false, row: 2, speed: 1.2 },
+      { word: 'meets', isCorrect: false, row: 1, speed: 1.0 },
     ],
-    spokenSuccess: 'Selfish! Generous people share; selfish people keep everything.',
-    explanation: '"Selfish" is the exact opposite of "Generous".',
+    spokenSuccess: 'Bullseye! I look forward to meeting you!',
+    explanation: 'In "look forward to", "to" is a preposition — so always use the -ING form ("meeting")!',
   },
   {
-    prompt: '🔥 SHOOT THE WORD THAT FITS: "She is good ___ speaking English."',
+    mission: '🎯 SNIPE THE OPPOSITE OF "ARTIFICIAL"!',
     targets: [
-      { word: 'in', isCorrect: false },
-      { word: 'at', isCorrect: true },
-      { word: 'on', isCorrect: false },
-      { word: 'with', isCorrect: false },
+      { word: 'Plastic', isCorrect: false, row: 0, speed: -1.3 },
+      { word: 'Genuine', isCorrect: true, row: 1, speed: 1.4 },
+      { word: 'Synthetic', isCorrect: false, row: 2, speed: -1.1 },
+      { word: 'Fake', isCorrect: false, row: 2, speed: 1.2 },
     ],
-    spokenSuccess: 'Good at! She is very good at speaking English.',
-    explanation: 'In English we say "good AT + activity" (good at speaking, good at math).',
-  },
-  {
-    prompt: '🔥 SHOOT THE PAST TENSE OF "BUY"!',
-    targets: [
-      { word: 'Buyed', isCorrect: false },
-      { word: 'Brought', isCorrect: false },
-      { word: 'Bought', isCorrect: true },
-      { word: 'Baught', isCorrect: false },
-    ],
-    spokenSuccess: 'Bought! I bought a new notebook this morning.',
-    explanation: '"Bought" is the past of "buy" ("Brought" is the past of "bring"!).',
-  },
-  {
-    prompt: '🔥 SHOOT THE WORD MEANING "EXTREMELY BIG"!',
-    targets: [
-      { word: 'Tiny', isCorrect: false },
-      { word: 'Enormous', isCorrect: true },
-      { word: 'Narrow', isCorrect: false },
-      { word: 'Silent', isCorrect: false },
-    ],
-    spokenSuccess: 'Enormous! The cruise ship in Miami port is enormous.',
-    explanation: '"Enormous" means huge or gigantic.',
+    spokenSuccess: 'Direct Hit! Genuine means real, authentic, and not fake.',
+    explanation: '"Genuine" (/ˈdʒen.ju.ɪn/) is the opposite of fake or artificial.',
   },
 ];
 
 // ============================================================================
-// 2. ZOMBIE GRAMMAR WHACK! (FUNNY WHACK-A-ZOMBIE GAME)
+// 2. 💣 TICK-TOCK BOMB DEFUSAL SQUAD (CUT THE RIGHT WIRE BEFORE KA-BOOM!)
 // ============================================================================
-interface ZombiePopItem {
-  id: string;
-  isZombieBadGrammar: boolean;
-  displayText: string;
-  fixedSentence: string;
-  funnyReaction: string;
+interface BombMission {
+  chiefPanicQuote: string;
+  sentencePuzzle: string;
+  wires: {
+    color: 'RED' | 'BLUE' | 'GREEN' | 'YELLOW';
+    bgClass: string;
+    borderClass: string;
+    label: string;
+    isCorrect: boolean;
+  }[];
+  spokenDefused: string;
+  boomFunnyMsg: string;
+  grammarRule: string;
 }
 
-const ZOMBIE_POP_BANK: ZombiePopItem[] = [
+const BOMB_MISSIONS: BombMission[] = [
+  {
+    chiefPanicQuote: '😰 CHIEF: "AGENT! THE TIMER IS TICKING! Cut the wire that fixes this unreal wish!"',
+    sentencePuzzle: '"If I _____ a billionaire, I would buy an island in Miami!"',
+    wires: [
+      { color: 'RED', bgClass: 'bg-rose-600', borderClass: 'border-rose-300', label: '🔴 RED WIRE: "am"', isCorrect: false },
+      { color: 'BLUE', bgClass: 'bg-blue-600', borderClass: 'border-blue-300', label: '🔵 BLUE WIRE: "were"', isCorrect: true },
+      { color: 'GREEN', bgClass: 'bg-emerald-600', borderClass: 'border-emerald-300', label: '🟢 GREEN WIRE: "will be"', isCorrect: false },
+      { color: 'YELLOW', bgClass: 'bg-amber-500', borderClass: 'border-amber-200', label: '🟡 YELLOW WIRE: "been"', isCorrect: false },
+    ],
+    spokenDefused: 'Phew! Bomb defused! If I were a billionaire, I would buy an island.',
+    boomFunnyMsg: '💥 KA-BOOOOM!! Your eyebrows are covered in soot! 😂 For imaginary wishes, cut the "If I WERE" wire!',
+    grammarRule: 'In Second Conditional (imaginary present), use "If I WERE" for all subjects!',
+  },
+  {
+    chiefPanicQuote: '😰 CHIEF: "DON’T SWEAT ON THE DYNAMITE! Which wire is the correct question tag?"',
+    sentencePuzzle: '"You speak English fluently, _________?"',
+    wires: [
+      { color: 'RED', bgClass: 'bg-rose-600', borderClass: 'border-rose-300', label: '🔴 RED WIRE: "isn’t it?"', isCorrect: false },
+      { color: 'BLUE', bgClass: 'bg-blue-600', borderClass: 'border-blue-300', label: '🔵 BLUE WIRE: "aren’t you?"', isCorrect: false },
+      { color: 'GREEN', bgClass: 'bg-emerald-600', borderClass: 'border-emerald-300', label: '🟢 GREEN WIRE: "don’t you?"', isCorrect: true },
+      { color: 'YELLOW', bgClass: 'bg-amber-500', borderClass: 'border-amber-200', label: '🟡 YELLOW WIRE: "no?"', isCorrect: false },
+    ],
+    spokenDefused: 'Bomb defused with 1 second left! You speak English fluently, don’t you?',
+    boomFunnyMsg: '💥 BOOM!! Never say "isn’t it?" for everything! 😂 Since the verb is "speak", the tag is "don’t you?"!',
+    grammarRule: 'Present simple positive verbs ("You speak...") take the negative auxiliary tag ("...don’t you?").',
+  },
+  {
+    chiefPanicQuote: '😰 CHIEF: "MY HANDS ARE SHAKING! Cut the wire with the right preposition!"',
+    sentencePuzzle: '"This luxury car belongs _____ the founder of the company."',
+    wires: [
+      { color: 'RED', bgClass: 'bg-rose-600', borderClass: 'border-rose-300', label: '🔴 RED WIRE: "to"', isCorrect: true },
+      { color: 'BLUE', bgClass: 'bg-blue-600', borderClass: 'border-blue-300', label: '🔵 BLUE WIRE: "for"', isCorrect: false },
+      { color: 'GREEN', bgClass: 'bg-emerald-600', borderClass: 'border-emerald-300', label: '🟢 GREEN WIRE: "with"', isCorrect: false },
+      { color: 'YELLOW', bgClass: 'bg-amber-500', borderClass: 'border-amber-200', label: '🟡 YELLOW WIRE: "at"', isCorrect: false },
+    ],
+    spokenDefused: 'Snip! Bomb deactivated! This luxury car belongs to the founder.',
+    boomFunnyMsg: '💥 KABOOM!! Now our hair is standing up like Einstein! ⚡ Always say "belongs TO"!',
+    grammarRule: 'The verb "belong" always pairs with the preposition "to" (belongs to someone).',
+  },
+  {
+    chiefPanicQuote: '😰 CHIEF: "FINAL BOMB! Cut the wire that means \'Postpone / Delay a meeting\'!"',
+    sentencePuzzle: '"Let’s _____ the meeting until tomorrow morning."',
+    wires: [
+      { color: 'RED', bgClass: 'bg-rose-600', borderClass: 'border-rose-300', label: '🔴 RED WIRE: "put out"', isCorrect: false },
+      { color: 'BLUE', bgClass: 'bg-blue-600', borderClass: 'border-blue-300', label: '🔵 BLUE WIRE: "put off"', isCorrect: true },
+      { color: 'GREEN', bgClass: 'bg-emerald-600', borderClass: 'border-emerald-300', label: '🟢 GREEN WIRE: "put on"', isCorrect: false },
+      { color: 'YELLOW', bgClass: 'bg-amber-500', borderClass: 'border-amber-200', label: '🟡 YELLOW WIRE: "put up"', isCorrect: false },
+    ],
+    spokenDefused: 'Defused! Let us put off the meeting until tomorrow morning.',
+    boomFunnyMsg: '💥 BOOM!! "Put out" means extinguish a fire! 🔥 "Put OFF" means postpone!',
+    grammarRule: '"Put off" = postpone/delay. "Put out" = extinguish a fire. "Put on" = wear clothes.',
+  },
+];
+
+// ============================================================================
+// 3. 🥊 STREET FIGHTER: BOSS KNOCKOUT! (1v1 BOXING FIGHT WITH HP BARS)
+// ============================================================================
+interface FighterRound {
+  bossName: string;
+  bossEmoji: string;
+  bossTaunt: string;
+  brokenAttack: string;
+  moves: {
+    moveName: string;
+    correction: string;
+    isCorrect: boolean;
+    hitReaction: string;
+  }[];
+  spokenCorrection: string;
+}
+
+const FIGHTER_ROUNDS: FighterRound[] = [
+  {
+    bossName: 'Count Broken-Grammar',
+    bossEmoji: '🧛‍♂️',
+    bossTaunt: '"Bleh! I will drain your XP with my terrible preposition attack!"',
+    brokenAttack: '⚡ BOSS ATTACK: "She is married WITH a famous doctor!"',
+    moves: [
+      {
+        moveName: '🥊 Dragon Uppercut',
+        correction: '"She is married TO a famous doctor!"',
+        isCorrect: true,
+        hitReaction: '🦷 POW! Knocked out Count Dracula’s plastic fang! Always say "married TO"!',
+      },
+      {
+        moveName: '🦶 Spinning Kick',
+        correction: '"She is married BY a famous doctor!"',
+        isCorrect: false,
+        hitReaction: '🛡️ Blocked! Never say "married by" — try "married TO"!',
+      },
+      {
+        moveName: '💥 Slap Chop',
+        correction: '"She is married FOR a famous doctor!"',
+        isCorrect: false,
+        hitReaction: '🛡️ Missed! The Boss laughed at you! Use "married TO"!',
+      },
+    ],
+    spokenCorrection: 'She is married to a famous doctor.',
+  },
+  {
+    bossName: 'Robo-Typo 3000',
+    bossEmoji: '🤖',
+    bossTaunt: '"BEEP BOOP! MY CIRCUITS LOVE DOUBLE NEGATIVES! DODGE THIS!"',
+    brokenAttack: '⚡ BOSS ATTACK: "I don’t know NOTHING about this phone!"',
+    moves: [
+      {
+        moveName: '🥊 Lightning Hook',
+        correction: '"I don’t know ANYTHING about this phone!"',
+        isCorrect: true,
+        hitReaction: '🔩 SMASH! Robo-Typo’s antenna flew off! Standard English avoids double negatives!',
+      },
+      {
+        moveName: '🦶 Low Sweep',
+        correction: '"I not know nothing about this phone!"',
+        isCorrect: false,
+        hitReaction: '⚡ ZAPPED! That’s still broken grammar!',
+      },
+      {
+        moveName: '💥 Headbutt',
+        correction: '"I doesn’t know anything about this phone!"',
+        isCorrect: false,
+        hitReaction: '⚡ CLANG! With "I", use "don’t", never "doesn’t"!',
+      },
+    ],
+    spokenCorrection: 'I don’t know anything about this phone.',
+  },
+  {
+    bossName: 'Rex the Slang-o-Saurus',
+    bossEmoji: '🦖',
+    bossTaunt: '"ROOOAR! I eat irregular verbs for breakfast!"',
+    brokenAttack: '⚡ BOSS ATTACK: "Yesterday I BUYED a big juicy steak!"',
+    moves: [
+      {
+        moveName: '🥊 Meteor Punch',
+        correction: '"Yesterday I BOUGHT a big juicy steak!"',
+        isCorrect: true,
+        hitReaction: '🦖 K.O. COMBO! Rex spun around 3 times! Past of "buy" is "BOUGHT"!',
+      },
+      {
+        moveName: '🦶 Tail Grab',
+        correction: '"Yesterday I BROUGHT a big juicy steak!"',
+        isCorrect: false,
+        hitReaction: '🦖 Careful! "Brought" is past of "bring" — past of "buy" is "BOUGHT"!',
+      },
+      {
+        moveName: '💥 Dino Poke',
+        correction: '"Yesterday I BUYING a big juicy steak!"',
+        isCorrect: false,
+        hitReaction: '🦖 ROAR! "Yesterday" needs Past Simple ("bought")!',
+      },
+    ],
+    spokenCorrection: 'Yesterday I bought a big juicy steak.',
+  },
+];
+
+// ============================================================================
+// 4. 🏴‍☠️ PIRATE CANNON BATTLE! (AIM & SINK THE RIGHT PIRATE SHIP!)
+// ============================================================================
+interface PirateBattle {
+  captainOrder: string;
+  ships: { name: string; word: string; isCorrect: boolean; distance: string }[];
+  spokenVictory: string;
+  explanation: string;
+}
+
+const PIRATE_BATTLES: PirateBattle[] = [
+  {
+    captainOrder: '🏴‍☠️ CAPTAIN: "AHOY MATEY! Fire the cannon at the ship carrying a SILENT \'K\' WORD!"',
+    ships: [
+      { name: 'Ship #1 (Near)', word: 'Kitchen', isCorrect: false, distance: '100m' },
+      { name: 'Ship #2 (Mid)', word: 'Knowledge', isCorrect: true, distance: '220m' },
+      { name: 'Ship #3 (Far)', word: 'Kangaroo', isCorrect: false, distance: '350m' },
+    ],
+    spokenVictory: 'Direct cannon hit! Knowledge starts with a silent K!',
+    explanation: 'In "Knowledge", "Knife", "Knock", and "Knee", the letter K is 100% silent!',
+  },
+  {
+    captainOrder: '🏴‍☠️ CAPTAIN: "FIRE AT THE SHIP THAT MEANS \'EXTREMELY ANGRY\'!"',
+    ships: [
+      { name: 'Ship #1 (Near)', word: 'Delighted', isCorrect: false, distance: '100m' },
+      { name: 'Ship #2 (Mid)', word: 'Furious', isCorrect: true, distance: '220m' },
+      { name: 'Ship #3 (Far)', word: 'Peaceful', isCorrect: false, distance: '350m' },
+    ],
+    spokenVictory: 'Boom! Sunk their galleon! Furious means extremely angry!',
+    explanation: '"Furious" (/ˈfjʊə.ri.əs/) is a strong adjective meaning very angry.',
+  },
+  {
+    captainOrder: '🏴‍☠️ CAPTAIN: "BLAST THE SHIP WITH THE PLURAL OF \'CHILD\'!"',
+    ships: [
+      { name: 'Ship #1 (Near)', word: 'Childs', isCorrect: false, distance: '100m' },
+      { name: 'Ship #2 (Mid)', word: 'Childrens', isCorrect: false, distance: '220m' },
+      { name: 'Ship #3 (Far)', word: 'Children', isCorrect: true, distance: '350m' },
+    ],
+    spokenVictory: 'Arrr! Direct hit! The plural of child is children, never childrens!',
+    explanation: '"Children" is already plural — never add an "s" to make "childrens"!',
+  },
+];
+
+// ============================================================================
+// 5. 🥷 WORD NINJA SLASH! (FRUIT-NINJA STYLE FLYING WORD SLICER)
+// ============================================================================
+interface NinjaItem {
+  id: string;
+  word: string;
+  emoji: string;
+  isRealCorrectEnglish: boolean;
+  meaningOrFix: string;
+}
+
+const NINJA_POOL: NinjaItem[] = [
+  { id: 'n1', word: ' magnificent ', emoji: '🍉', isRealCorrectEnglish: true, meaningOrFix: 'Magnificent = Extremely beautiful and impressive!' },
+  { id: 'n2', word: 'opportunity', emoji: '🍍', isRealCorrectEnglish: true, meaningOrFix: 'Opportunity = A great chance to do something!' },
+  { id: 'n3', word: 'enthusiasm', emoji: '🥭', isRealCorrectEnglish: true, meaningOrFix: 'Enthusiasm = Intense excitement and interest!' },
+  { id: 'n4', word: 'comfortable', emoji: '🍓', isRealCorrectEnglish: true, meaningOrFix: 'Comfortable = Relaxed and free from stress!' },
+  { id: 'b1', word: '💣 UNPOSSIBLE', emoji: '🧨', isRealCorrectEnglish: false, meaningOrFix: '💥 BOOM! "Unpossible" is fake — the real word is IMPOSSIBLE!' },
+  { id: 'b2', word: '💣 WRITED', emoji: '🧨', isRealCorrectEnglish: false, meaningOrFix: '💥 BOOM! Don’t slash "Writed" — the real word is WROTE!' },
+  { id: 'b3', word: '💣 EXPENSIVER', emoji: '🧨', isRealCorrectEnglish: false, meaningOrFix: '💥 BOOM! Never say "Expensiver" — say MORE EXPENSIVE!' },
+];
+
+// ============================================================================
+// 6. 🧟 ZOMBIE GRAMMAR WHACK, 7. 🦈 HUNGRY SHARK, 8. 🏎️ TURBO RACER
+// ============================================================================
+const ZOMBIE_POP_BANK = [
   {
     id: 'z1',
     isZombieBadGrammar: true,
@@ -173,106 +383,30 @@ const ZOMBIE_POP_BANK: ZombiePopItem[] = [
     funnyReaction: '🥊 WHACK! "Better" is already comparative — say "MUCH better"!',
   },
   {
-    id: 'z5',
-    isZombieBadGrammar: true,
-    displayText: '🧟 "Did you WENT home?"',
-    fixedSentence: 'Did you go home?',
-    funnyReaction: '🥊 KABOOM! After "Did", always use the base verb: "Did you GO home?"',
-  },
-  {
-    id: 'z6',
-    isZombieBadGrammar: true,
-    displayText: '🧟 "I am AGREE with you!"',
-    fixedSentence: 'I agree with you!',
-    funnyReaction: '🥊 BONK! "Agree" is a verb, not an adjective — just say "I agree!"',
-  },
-  {
     id: 'p1',
     isZombieBadGrammar: false,
     displayText: '🧑‍🏫 "She has lived here for 3 years."',
     fixedSentence: 'She has lived here for 3 years.',
     funnyReaction: '👓 OUCH! Don’t punch the Professor! That sentence was 100% CORRECT!',
   },
-  {
-    id: 'p2',
-    isZombieBadGrammar: false,
-    displayText: '🧑‍🏫 "I look forward to meeting you."',
-    fixedSentence: 'I look forward to meeting you.',
-    funnyReaction: '👓 HEY! My grammar was perfect ("look forward to + -ing")!',
-  },
 ];
 
-// ============================================================================
-// 3. HUNGRY MIAMI SHARK (FUNNY FOOD & WORD CATCHER)
-// ============================================================================
-interface SharkRound {
-  orderTitle: string;
-  goodItems: { emoji: string; word: string; spoken: string }[];
-  badItems: { emoji: string; word: string; funnyFail: string }[];
-}
-
-const SHARK_ROUNDS: SharkRound[] = [
+const SHARK_ROUNDS = [
   {
-    orderTitle: '🦈 Order #1: Feed Chef Shark ONLY "POSITIVE ADJECTIVES"! (Dodge the stinky boots!)',
+    orderTitle: '🦈 Feed Chef Shark ONLY "POSITIVE ADJECTIVES"! (Dodge the stinky boots!)',
     goodItems: [
       { emoji: '🍔', word: 'Brilliant', spoken: 'Yum! Brilliant means very clever or wonderful!' },
       { emoji: '🍕', word: 'Generous', spoken: 'Delicious! Generous means happy to share!' },
       { emoji: '🌮', word: 'Confident', spoken: 'Tasty! Confident means sure of yourself!' },
-      { emoji: '🍩', word: 'Enthusiastic', spoken: 'Sweet! Enthusiastic means full of excitement!' },
     ],
     badItems: [
       { emoji: '🥾', word: 'He Goed (Boot!)', funnyFail: '🤢 YUCK! You fed the shark an old boot with bad grammar!' },
-      { emoji: '🧦', word: 'Rude & Mean', funnyFail: '🤢 BLEGH! That’s negative, not a positive adjective!' },
-      { emoji: '💣', word: 'More Better', funnyFail: '💥 OOPS! Grammar bomb gave the shark indigestion!' },
-    ],
-  },
-  {
-    orderTitle: '🦈 Order #2: Feed Chef Shark ONLY "CORRECT IRREGULAR PAST VERBS"!',
-    goodItems: [
-      { emoji: '🍣', word: 'Spoke (Speak)', spoken: 'Chomp! Spoke is the past tense of speak!' },
-      { emoji: '🍤', word: 'Wrote (Write)', spoken: 'Yum! Wrote is the past tense of write!' },
-      { emoji: '🥩', word: 'Caught (Catch)', spoken: 'Nom nom! Caught is the past tense of catch!' },
-      { emoji: '🍗', word: 'Flew (Fly)', spoken: 'Crunchy! Flew is the past tense of fly!' },
-    ],
-    badItems: [
-      { emoji: '🥾', word: 'Speaked (Wrong!)', funnyFail: '🤢 YUCK! "Speaked" is not a word — it’s "Spoke"!' },
-      { emoji: '🧦', word: 'Catched (Wrong!)', funnyFail: '🤢 BLEGH! Never say "Catched" — say "Caught"!' },
-      { emoji: '🦴', word: 'Writed (Wrong!)', funnyFail: '🤢 OUCH! "Writed" is a sharp fishbone — say "Wrote"!' },
+      { emoji: '🧦', word: 'More Better (Sock!)', funnyFail: '🤢 BLEGH! Wet sock! Say "Much better"!' },
     ],
   },
 ];
 
-// ============================================================================
-// 4. MIAMI TURBO RACER (FUNNY NITRO CAR RACE)
-// ============================================================================
-interface RacerChallenge {
-  situation: string;
-  options: { text: string; isCorrect: boolean; funnyOutcome: string }[];
-  spokenAnswer: string;
-}
-
-const RACER_CHALLENGES: RacerChallenge[] = [
-  {
-    situation: '🚦 Boss asks: "Can you finish this report by 5 PM?" — Pick the most natural professional reply for NITRO!',
-    options: [
-      {
-        text: '🔥 "Sure thing! I’m on it and will send it before 5."',
-        isCorrect: true,
-        funnyOutcome: '🏎️💨 NITRO ENGAGED! "I’m on it" is natural workplace English!',
-      },
-      {
-        text: '🍌 "Yes I am make report five clock maybe."',
-        isCorrect: false,
-        funnyOutcome: '🍌 WHOOPS! You slipped on a grammar banana peel!',
-      },
-      {
-        text: '🍌 "Report is go to be finish by me."',
-        isCorrect: false,
-        funnyOutcome: '🍌 SPIN-OUT! Officer Bob’s police car just passed you!',
-      },
-    ],
-    spokenAnswer: 'Sure thing! I am on it and will send it before five.',
-  },
+const RACER_CHALLENGES = [
   {
     situation: '🚦 It’s raining super hard in Miami! Which funny English idiom means "raining very heavily"?',
     options: [
@@ -300,7 +434,7 @@ const RACER_CHALLENGES: RacerChallenge[] = [
       {
         text: '🔥 "Break a leg! You’re going to do great!"',
         isCorrect: true,
-        funnyOutcome: '🏎️💨 SUPER NITRO! "Break a leg" means "Good luck!" in theater & speeches!',
+        funnyOutcome: '🏎️💨 SUPER NITRO! "Break a leg" means "Good luck!"',
       },
       {
         text: '🍌 "Break your nose on the microphone!"',
@@ -315,86 +449,6 @@ const RACER_CHALLENGES: RacerChallenge[] = [
     ],
     spokenAnswer: 'Break a leg! You are going to do great!',
   },
-  {
-    situation: '🚦 Someone tells you a secret. Which idiom means "I will keep the secret and not tell anyone"?',
-    options: [
-      {
-        text: '🔥 "My lips are sealed!"',
-        isCorrect: true,
-        funnyOutcome: '🏎️💨 FINISH LINE NITRO! "My lips are sealed" = I won’t tell a soul!',
-      },
-      {
-        text: '🍌 "My ears are glued with cheese!"',
-        isCorrect: false,
-        funnyOutcome: '🍌 HAHA! Funny, but say "My lips are sealed!"',
-      },
-      {
-        text: '🍌 "I spilled the beans everywhere!"',
-        isCorrect: false,
-        funnyOutcome: '🍌 OOPS! "Spill the beans" means you TOLD the secret!',
-      },
-    ],
-    spokenAnswer: 'Don’t worry, my lips are sealed!',
-  },
-];
-
-// ============================================================================
-// 5. WORD BLITZ & 6. SENTENCE BUILDER BANKS
-// ============================================================================
-const BLITZ_BANK = [
-  {
-    word: 'Resilient',
-    phonetic: '/rɪˈzɪl.i.ənt/',
-    sentence: 'Resilient learners never quit when they make a mistake.',
-    options: [
-      { text: 'Able to recover quickly from difficulties', isCorrect: true },
-      { text: 'Preferring to sleep all afternoon', isCorrect: false },
-      { text: 'Forgetting important phone numbers', isCorrect: false },
-      { text: 'Walking very slowly in the rain', isCorrect: false },
-    ],
-    explanation: '"Resilient" means bouncing back stronger after challenges.',
-  },
-  {
-    word: 'Punctual',
-    phonetic: '/ˈpʌŋk.tʃu.əl/',
-    sentence: 'Our teacher loves punctual students who arrive right on time.',
-    options: [
-      { text: 'Arriving on time, never late', isCorrect: true },
-      { text: 'Writing with a red pencil', isCorrect: false },
-      { text: 'Eating breakfast at midnight', isCorrect: false },
-      { text: 'Speaking in a very loud voice', isCorrect: false },
-    ],
-    explanation: '"Punctual" means always arriving on time.',
-  },
-  {
-    word: 'Exhausted',
-    phonetic: '/ɪɡˈzɔː.stɪd/',
-    sentence: 'After working ten hours, Carlos felt completely exhausted.',
-    options: [
-      { text: 'Extremely tired with zero energy left', isCorrect: true },
-      { text: 'Excited to run a marathon race', isCorrect: false },
-      { text: 'Hungry for a spicy chicken taco', isCorrect: false },
-      { text: 'Curious about space rockets', isCorrect: false },
-    ],
-    explanation: '"Exhausted" means 100% tired.',
-  },
-];
-
-const SCRAMBLE_BANK = [
-  {
-    clue: 'Polite coffee shop order in the morning',
-    topic: 'Polite Requests',
-    targetSentence: 'I would like a cup of hot coffee please',
-    words: ['please', 'coffee', 'would', 'I', 'cup', 'like', 'a', 'hot', 'of'],
-    hint: 'Start with "I would like a..." and end with "please".',
-  },
-  {
-    clue: 'Asking how long someone has lived in Miami',
-    topic: 'Present Perfect Question',
-    targetSentence: 'How long have you lived in Miami',
-    words: ['lived', 'Miami', 'have', 'How', 'in', 'you', 'long'],
-    hint: 'Start with "How long have you...".',
-  },
 ];
 
 interface Props {
@@ -402,7 +456,7 @@ interface Props {
 }
 
 export default function EnglishLearningGameArena({ onXpEarned }: Props) {
-  const [mode, setMode] = useState<GameMode>('laser');
+  const [mode, setMode] = useState<GameMode>('sniper');
 
   // Shared Arcade HUD State
   const [score, setScore] = useState(0);
@@ -460,134 +514,265 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
   );
 
   // ==========================================================================
-  // MODE 1: SPACE LASER SHOOTER STATE & REAL-TIME LOOP
+  // GAME 1: 🎯 SNIPER SCOPE (MOVING TARGETS + AMMO + RECOIL + CROSSHAIR)
   // ==========================================================================
-  const [laserMissionIdx, setLaserMissionIdx] = useState(0);
-  const [shipX, setShipX] = useState(50); // 10% to 90%
-  const [ufoY, setUfoY] = useState(14); // 10% to 75%
-  const [laserBeam, setLaserBeam] = useState<{
-    x: number;
-    targetIdx: number;
-    hitOk: boolean;
-  } | null>(null);
-  const [explodedIdx, setExplodedIdx] = useState<number | null>(null);
-  const [laserPaused, setLaserPaused] = useState(false);
-  const laserArenaRef = useRef<HTMLDivElement | null>(null);
+  const [sniperWaveIdx, setSniperWaveIdx] = useState(0);
+  const [scopePos, setScopePos] = useState({ x: 50, y: 50 });
+  const [targetOffsets, setTargetOffsets] = useState<number[]>([15, 70, 35, 60]);
+  const [ammo, setAmmo] = useState(6);
+  const [muzzleFlash, setMuzzleFlash] = useState(false);
+  const [shatteredIdx, setShatteredIdx] = useState<number | null>(null);
+  const sniperBoxRef = useRef<HTMLDivElement | null>(null);
 
-  const currentLaserMission = LASER_MISSIONS[laserMissionIdx % LASER_MISSIONS.length];
-  const ufoPositions = [15, 38, 62, 85];
+  const currentSniperWave = SNIPER_WAVES[sniperWaveIdx % SNIPER_WAVES.length];
 
-  // Move UFOs slowly downward in Laser Shooter
+  // Move sniper targets horizontally across the shooting gallery
   useEffect(() => {
-    if (mode !== 'laser' || laserPaused) return;
+    if (mode !== 'sniper') return;
     const interval = setInterval(() => {
-      setUfoY((y) => (y >= 68 ? 14 : y + 1.1));
-    }, 120);
+      setTargetOffsets((prev) =>
+        prev.map((x, idx) => {
+          const spd = currentSniperWave.targets[idx]?.speed || 1.2;
+          let next = x + spd * 1.8;
+          if (next > 86) next = 14;
+          if (next < 14) next = 86;
+          return next;
+        })
+      );
+    }, 85);
     return () => clearInterval(interval);
-  }, [mode, laserPaused]);
+  }, [mode, currentSniperWave]);
 
-  const fireLaserAtTarget = useCallback(
-    (targetIdx: number) => {
-      const targetX = ufoPositions[targetIdx];
-      setShipX(targetX);
-      playLaserSound();
+  const handleSniperShot = (idx: number) => {
+    if (ammo <= 0) {
+      playErrorSound();
+      setBannerMsg({
+        ok: false,
+        text: '🔫 CLICK! Out of ammo! Hit the "RELOAD (6/6)" button!',
+      });
+      return;
+    }
 
-      const targetObj = currentLaserMission.targets[targetIdx];
-      const isHitOk = Boolean(targetObj?.isCorrect);
+    setAmmo((a) => a - 1);
+    setMuzzleFlash(true);
+    playLaserSound();
+    setTimeout(() => setMuzzleFlash(false), 150);
 
-      setLaserBeam({ x: targetX, targetIdx, hitOk: isHitOk });
+    const tgt = currentSniperWave.targets[idx];
+    if (tgt?.isCorrect) {
+      playExplosionSound();
+      setShatteredIdx(idx);
+      confetti({ particleCount: 45, spread: 60, origin: { y: 0.55 } });
+      awardPoints(
+        50,
+        true,
+        `🎯 BULLSEYE! ${currentSniperWave.explanation}`,
+        currentSniperWave.spokenSuccess
+      );
+      setTimeout(() => {
+        setShatteredIdx(null);
+        setAmmo(6);
+        setSniperWaveIdx((w) => w + 1);
+      }, 1100);
+    } else {
+      playErrorSound();
+      awardPoints(
+        0,
+        false,
+        `🦆 Missed! "${tgt?.word}" was a decoy! Read the mission carefully!`
+      );
+    }
+  };
+
+  // ==========================================================================
+  // GAME 2: 💣 TICK-TOCK BOMB DEFUSAL SQUAD
+  // ==========================================================================
+  const [bombIdx, setBombIdx] = useState(0);
+  const [bombTimer, setBombTimer] = useState(15);
+  const [bombState, setBombState] = useState<'ticking' | 'defused' | 'exploded'>('ticking');
+  const currentBomb = BOMB_MISSIONS[bombIdx % BOMB_MISSIONS.length];
+
+  useEffect(() => {
+    if (mode !== 'bomb' || bombState !== 'ticking') return;
+    if (bombTimer <= 0) {
+      setBombState('exploded');
+      playExplosionSound();
+      awardPoints(0, false, currentBomb.boomFunnyMsg);
+      return;
+    }
+    const t = setInterval(() => {
+      setBombTimer((s) => s - 1);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [mode, bombState, bombTimer, currentBomb, awardPoints]);
+
+  const handleCutWire = (wire: BombMission['wires'][0]) => {
+    if (bombState !== 'ticking') return;
+    if (wire.isCorrect) {
+      playFanfareSound();
+      setBombState('defused');
+      confetti({ particleCount: 55, spread: 70, origin: { y: 0.6 } });
+      awardPoints(
+        60,
+        true,
+        `😮‍💨 WIRE SNIPPED! BOMB DEFUSED! ${currentBomb.grammarRule}`,
+        currentBomb.spokenDefused
+      );
+    } else {
+      playExplosionSound();
+      setBombState('exploded');
+      awardPoints(0, false, currentBomb.boomFunnyMsg);
+    }
+  };
+
+  const nextBombMission = () => {
+    setBombState('ticking');
+    setBombTimer(15);
+    setBombIdx((i) => i + 1);
+    setBannerMsg(null);
+  };
+
+  // ==========================================================================
+  // GAME 3: 🥊 STREET FIGHTER: BOSS KNOCKOUT!
+  // ==========================================================================
+  const [fighterIdx, setFighterIdx] = useState(0);
+  const [bossHp, setBossHp] = useState(100);
+  const [playerHp, setPlayerHp] = useState(100);
+  const [bossHitAnim, setBossHitAnim] = useState(false);
+  const currentFighter = FIGHTER_ROUNDS[fighterIdx % FIGHTER_ROUNDS.length];
+
+  const handleThrowPunch = (move: FighterRound['moves'][0]) => {
+    if (move.isCorrect) {
+      playBonkSound();
+      setBossHitAnim(true);
+      const nextBossHp = Math.max(0, bossHp - 35);
+      setBossHp(nextBossHp);
+      awardPoints(50, true, move.hitReaction, currentFighter.spokenCorrection);
+
+      if (nextBossHp === 0) {
+        playFanfareSound();
+        confetti({ particleCount: 80, spread: 90, origin: { y: 0.55 } });
+        setTimeout(() => {
+          setBossHp(100);
+          setPlayerHp(100);
+        }, 1600);
+      }
 
       setTimeout(() => {
-        if (isHitOk) {
-          playExplosionSound();
-          setExplodedIdx(targetIdx);
-          confetti({ particleCount: 35, spread: 55, origin: { y: 0.55 } });
-          awardPoints(
-            40,
-            true,
-            currentLaserMission.explanation,
-            currentLaserMission.spokenSuccess
-          );
-          setTimeout(() => {
-            setExplodedIdx(null);
-            setLaserBeam(null);
-            setUfoY(14);
-            setLaserMissionIdx((i) => i + 1);
-          }, 950);
-        } else {
-          playErrorSound();
-          awardPoints(
-            0,
-            false,
-            `🛸 Wrong UFO! Look closely: ${currentLaserMission.prompt}`
-          );
-          setTimeout(() => {
-            setLaserBeam(null);
-          }, 450);
-        }
-      }, 180);
-    },
-    [currentLaserMission, awardPoints]
-  );
+        setBossHitAnim(false);
+        setFighterIdx((i) => i + 1);
+      }, 1200);
+    } else {
+      playErrorSound();
+      setPlayerHp((hp) => Math.max(20, hp - 20));
+      awardPoints(0, false, move.hitReaction);
+    }
+  };
 
-  // Keyboard controls for Laser Shooter (Left/Right + Spacebar)
+  // ==========================================================================
+  // GAME 4: 🏴‍☠️ PIRATE CANNON SHIP BATTLE
+  // ==========================================================================
+  const [pirateIdx, setPirateIdx] = useState(0);
+  const [sunkShipIdx, setSunkShipIdx] = useState<number | null>(null);
+  const [octopusSplash, setOctopusSplash] = useState(false);
+  const currentPirate = PIRATE_BATTLES[pirateIdx % PIRATE_BATTLES.length];
+
+  const handleFireCannon = (shipIdx: number) => {
+    playExplosionSound();
+    const ship = currentPirate.ships[shipIdx];
+    if (ship?.isCorrect) {
+      setSunkShipIdx(shipIdx);
+      confetti({ particleCount: 45, spread: 65, origin: { y: 0.6 } });
+      awardPoints(
+        50,
+        true,
+        `🏴‍☠️ DIRECT CANNON HIT! ${currentPirate.explanation}`,
+        currentPirate.spokenVictory
+      );
+      setTimeout(() => {
+        setSunkShipIdx(null);
+        setPirateIdx((i) => i + 1);
+      }, 1200);
+    } else {
+      setOctopusSplash(true);
+      awardPoints(
+        0,
+        false,
+        `🐙 SPLASH! Giant Octopus threw the cannonball back at your pirate hat! Try another ship!`
+      );
+      setTimeout(() => setOctopusSplash(false), 1000);
+    }
+  };
+
+  // ==========================================================================
+  // GAME 5: 🥷 WORD NINJA SLASH!
+  // ==========================================================================
+  const [flyingFruits, setFlyingFruits] = useState<
+    (NinjaItem & { uid: string; x: number; y: number; slashed: boolean })[]
+  >([]);
+
   useEffect(() => {
-    if (mode !== 'laser') return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a') {
-        setShipX((x) => Math.max(12, x - 12));
-      } else if (e.key === 'ArrowRight' || e.key === 'd') {
-        setShipX((x) => Math.min(88, x + 12));
-      } else if (e.key === ' ') {
-        e.preventDefault();
-        // Find closest UFO to current shipX
-        let closestIdx = 0;
-        let minDist = 999;
-        ufoPositions.forEach((ux, idx) => {
-          const d = Math.abs(ux - shipX);
-          if (d < minDist) {
-            minDist = d;
-            closestIdx = idx;
-          }
-        });
-        fireLaserAtTarget(closestIdx);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mode, shipX, fireLaserAtTarget]);
+    if (mode !== 'ninja') return;
+    const spawner = setInterval(() => {
+      const picked = NINJA_POOL[Math.floor(Math.random() * NINJA_POOL.length)];
+      const lanes = [18, 40, 62, 82];
+      const lane = lanes[Math.floor(Math.random() * lanes.length)];
+      setFlyingFruits((prev) => [
+        ...prev.slice(-3),
+        {
+          ...picked,
+          uid: `${Date.now()}-${Math.random()}`,
+          x: lane,
+          y: 25 + Math.floor(Math.random() * 40),
+          slashed: false,
+        },
+      ]);
+    }, 1100);
+    return () => clearInterval(spawner);
+  }, [mode]);
+
+  const handleNinjaSlash = (uid: string) => {
+    const item = flyingFruits.find((f) => f.uid === uid);
+    if (!item || item.slashed) return;
+    setFlyingFruits((prev) =>
+      prev.map((f) => (f.uid === uid ? { ...f, slashed: true } : f))
+    );
+
+    if (item.isRealCorrectEnglish) {
+      playLaserSound();
+      awardPoints(35, true, `⚔️ SLASHED! ${item.meaningOrFix}`, item.word);
+    } else {
+      playExplosionSound();
+      awardPoints(0, false, item.meaningOrFix);
+    }
+  };
 
   // ==========================================================================
-  // MODE 2: ZOMBIE GRAMMAR WHACK STATE & REAL-TIME POP-UP LOOP
+  // GAME 6: 🧟 ZOMBIE WHACK, 7: 🦈 SHARK, 8: 🏎️ RACER
   // ==========================================================================
-  const [activeHoles, setActiveHoles] = useState<(ZombiePopItem | null)[]>([
+  const [activeHoles, setActiveHoles] = useState<(typeof ZOMBIE_POP_BANK[0] | null)[]>([
     ZOMBIE_POP_BANK[0],
     null,
     ZOMBIE_POP_BANK[1],
     null,
-    ZOMBIE_POP_BANK[6],
+    ZOMBIE_POP_BANK[4],
     null,
   ]);
   const [whackedHoleIdx, setWhackedHoleIdx] = useState<number | null>(null);
-  const [zombieScoreCount, setZombieScoreCount] = useState(0);
 
   useEffect(() => {
     if (mode !== 'zombie') return;
     const interval = setInterval(() => {
-      setActiveHoles(() => {
-        const next: (ZombiePopItem | null)[] = [null, null, null, null, null, null];
-        // Pick 2 or 3 random holes to pop up
-        const holeIndices = [0, 1, 2, 3, 4, 5]
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
-        holeIndices.forEach((hIdx) => {
-          const randomItem =
+      const next: (typeof ZOMBIE_POP_BANK[0] | null)[] = [null, null, null, null, null, null];
+      [0, 1, 2, 3, 4, 5]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3)
+        .forEach((hIdx) => {
+          next[hIdx] =
             ZOMBIE_POP_BANK[Math.floor(Math.random() * ZOMBIE_POP_BANK.length)];
-          next[hIdx] = randomItem;
         });
-        return next;
-      });
-    }, 2400);
+      setActiveHoles(next);
+    }, 2300);
     return () => clearInterval(interval);
   }, [mode]);
 
@@ -596,200 +781,65 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
     if (!item) return;
     setWhackedHoleIdx(holeIdx);
     playBonkSound();
-
     if (item.isZombieBadGrammar) {
-      setZombieScoreCount((c) => c + 1);
       awardPoints(35, true, item.funnyReaction, item.fixedSentence);
     } else {
       playErrorSound();
-      awardPoints(0, false, item.funnyReaction, item.fixedSentence);
+      awardPoints(0, false, item.funnyReaction);
     }
-
     setTimeout(() => {
       setWhackedHoleIdx(null);
-      setActiveHoles((prev) =>
-        prev.map((entry, idx) => (idx === holeIdx ? null : entry))
-      );
-    }, 650);
+      setActiveHoles((prev) => prev.map((e, i) => (i === holeIdx ? null : e)));
+    }, 600);
   };
 
-  // ==========================================================================
-  // MODE 3: HUNGRY MIAMI SHARK CATCHER STATE & FALLING ITEMS LOOP
-  // ==========================================================================
-  const [sharkRoundIdx, setSharkRoundIdx] = useState(0);
+  // Shark state
   const [sharkX, setSharkX] = useState(50);
-  const [fallingItems, setFallingItems] = useState<
-    {
-      uid: string;
-      x: number;
-      y: number;
-      emoji: string;
-      word: string;
-      isGood: boolean;
-      feedback: string;
-    }[]
-  >([]);
-  const [sharkMouthMsg, setSharkMouthMsg] = useState<string>('🦈 Move me to eat!');
+  const [fallingItems, setFallingItems] = useState<any[]>([]);
+  const [sharkMouthMsg, setSharkMouthMsg] = useState('🦈 Tap falling food to CHOMP!');
+  const currentSharkRound = SHARK_ROUNDS[0];
 
-  const currentSharkRound = SHARK_ROUNDS[sharkRoundIdx % SHARK_ROUNDS.length];
-
-  // Spawn & drop items in Hungry Shark mode
   useEffect(() => {
     if (mode !== 'shark') return;
     const spawner = setInterval(() => {
       setFallingItems((prev) => {
         if (prev.length >= 4) return prev;
-        const isGood = Math.random() > 0.38;
-        const pool = isGood
-          ? currentSharkRound.goodItems
-          : currentSharkRound.badItems;
+        const isGood = Math.random() > 0.35;
+        const pool = isGood ? currentSharkRound.goodItems : currentSharkRound.badItems;
         const picked = pool[Math.floor(Math.random() * pool.length)];
-        const lanes = [16, 38, 62, 84];
-        const randomLane = lanes[Math.floor(Math.random() * lanes.length)];
+        const lanes = [18, 40, 62, 82];
         return [
           ...prev,
           {
             uid: `${Date.now()}-${Math.random()}`,
-            x: randomLane,
-            y: 8,
+            x: lanes[Math.floor(Math.random() * lanes.length)],
+            y: 10,
             emoji: picked.emoji,
             word: picked.word,
             isGood,
-            feedback: isGood
-              ? (picked as any).spoken
-              : (picked as any).funnyFail,
+            feedback: isGood ? (picked as any).spoken : (picked as any).funnyFail,
           },
         ];
       });
-    }, 1300);
-
+    }, 1200);
     const mover = setInterval(() => {
       setFallingItems((prev) =>
-        prev
-          .map((item) => ({ ...item, y: item.y + 4.5 }))
-          .filter((item) => item.y < 92)
+        prev.map((i) => ({ ...i, y: i.y + 4.5 })).filter((i) => i.y < 90)
       );
     }, 120);
-
     return () => {
       clearInterval(spawner);
       clearInterval(mover);
     };
   }, [mode, currentSharkRound]);
 
-  const handleEatFallingItem = (uid: string) => {
-    const target = fallingItems.find((i) => i.uid === uid);
-    if (!target) return;
-    setSharkX(target.x);
-    setFallingItems((prev) => prev.filter((i) => i.uid !== uid));
-
-    if (target.isGood) {
-      playChompSound();
-      setSharkMouthMsg(`😋 YUM! "${target.word}"!`);
-      awardPoints(30, true, target.feedback, target.feedback);
-    } else {
-      playErrorSound();
-      setSharkMouthMsg(`🤢 YUCK! Spit it out!`);
-      awardPoints(0, false, target.feedback);
-    }
-  };
-
-  // ==========================================================================
-  // MODE 4: MIAMI TURBO RACER STATE
-  // ==========================================================================
+  // Racer state
   const [racerIdx, setRacerIdx] = useState(0);
-  const [playerCarProgress, setPlayerCarProgress] = useState(18);
-  const [rivalCarProgress, setRivalCarProgress] = useState(22);
+  const [playerCarProgress, setPlayerCarProgress] = useState(20);
+  const [rivalCarProgress, setRivalCarProgress] = useState(24);
   const [nitroActive, setNitroActive] = useState(false);
   const [bananaSpin, setBananaSpin] = useState(false);
-
   const currentRacer = RACER_CHALLENGES[racerIdx % RACER_CHALLENGES.length];
-
-  const handleRacerPick = (opt: {
-    text: string;
-    isCorrect: boolean;
-    funnyOutcome: string;
-  }) => {
-    if (opt.isCorrect) {
-      playSuccessSound();
-      setNitroActive(true);
-      const nextProgress = Math.min(92, playerCarProgress + 24);
-      setPlayerCarProgress(nextProgress);
-      setRivalCarProgress((r) => Math.min(82, r + 8));
-      awardPoints(45, true, opt.funnyOutcome, currentRacer.spokenAnswer);
-
-      if (nextProgress >= 88) {
-        playFanfareSound();
-        confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
-        setTimeout(() => {
-          setPlayerCarProgress(18);
-          setRivalCarProgress(20);
-        }, 1800);
-      }
-
-      setTimeout(() => {
-        setNitroActive(false);
-        setRacerIdx((i) => i + 1);
-      }, 1200);
-    } else {
-      playErrorSound();
-      setBananaSpin(true);
-      setRivalCarProgress((r) => Math.min(85, r + 14));
-      awardPoints(0, false, opt.funnyOutcome);
-      setTimeout(() => {
-        setBananaSpin(false);
-      }, 900);
-    }
-  };
-
-  // ==========================================================================
-  // MODE 5 & 6: WORD BLITZ & SENTENCE BUILDER
-  // ==========================================================================
-  const [blitzIdx, setBlitzIdx] = useState(0);
-  const [scrambleIdx, setScrambleIdx] = useState(0);
-  const [selectedWordIndices, setSelectedWordIndices] = useState<number[]>([]);
-  const [showHint, setShowHint] = useState(false);
-
-  const currentBlitz = BLITZ_BANK[blitzIdx % BLITZ_BANK.length];
-  const currentScramble = SCRAMBLE_BANK[scrambleIdx % SCRAMBLE_BANK.length];
-
-  const handleScrambleTap = (idx: number) => {
-    if (selectedWordIndices.includes(idx)) {
-      setSelectedWordIndices(selectedWordIndices.filter((i) => i !== idx));
-    } else {
-      const next = [...selectedWordIndices, idx];
-      setSelectedWordIndices(next);
-      speakRealisticText(currentScramble.words[idx], { rate: 1.0 });
-
-      if (next.length === currentScramble.words.length) {
-        const built = next.map((i) => currentScramble.words[i]).join(' ');
-        const ok =
-          built.toLowerCase().trim() ===
-          currentScramble.targetSentence.toLowerCase().trim();
-        if (ok) {
-          playSuccessSound();
-          awardPoints(
-            40,
-            true,
-            `Perfect sentence: "${currentScramble.targetSentence}"`,
-            currentScramble.targetSentence
-          );
-          setTimeout(() => {
-            setSelectedWordIndices([]);
-            setShowHint(false);
-            setScrambleIdx((i) => i + 1);
-          }, 1300);
-        } else {
-          playErrorSound();
-          awardPoints(
-            0,
-            false,
-            `Almost! Try starting with: "${currentScramble.hint}"`
-          );
-        }
-      }
-    }
-  };
 
   return (
     <section className="card-3d overflow-hidden border-2 border-indigo-500/80 dark:border-indigo-700 bg-white dark:bg-slate-900">
@@ -803,14 +853,14 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                  ★ 6 Playable English Action Games
+                  ★ 8 Action & Funny Playable Games
                 </span>
                 <span className="text-xs font-bold text-emerald-300">
-                  Shoot UFOs, Whack Grammar Zombies, Feed the Shark & Race!
+                  Snipe Moving Targets, Defuse Bombs, Fight Bosses & Sink Pirate Ships!
                 </span>
               </div>
               <h2 className="text-xl sm:text-3xl font-black tracking-tight mt-1">
-                Miami English Arcade & Firing Arena
+                Miami English Action & Comedy Arcade
               </h2>
             </div>
           </div>
@@ -882,47 +932,18 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
           </div>
         </div>
 
-        {/* 6 Game Mode Selector Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-5">
+        {/* 8 Playable Game Mode Tabs */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mt-5">
           {[
-            {
-              id: 'laser',
-              label: '🚀 Laser Shooter',
-              sub: 'Firing Action Game',
-              icon: Rocket,
-            },
-            {
-              id: 'zombie',
-              label: '🧟 Zombie Whack!',
-              sub: 'Bonk Bad Grammar',
-              icon: Hammer,
-            },
-            {
-              id: 'shark',
-              label: '🦈 Hungry Shark',
-              sub: 'Funny Word Catcher',
-              icon: Utensils,
-            },
-            {
-              id: 'racer',
-              label: '🏎️ Turbo Racer',
-              sub: 'Nitro Idiom Race',
-              icon: Car,
-            },
-            {
-              id: 'blitz',
-              label: '⚡ Word Blitz',
-              sub: 'Speed Meanings',
-              icon: Timer,
-            },
-            {
-              id: 'scramble',
-              label: '🧩 Sentence Pro',
-              sub: 'Word Order Puzzle',
-              icon: Puzzle,
-            },
+            { id: 'sniper', label: '🎯 Sniper Scope', sub: 'Moving Firing', icon: Crosshair },
+            { id: 'bomb', label: '💣 Bomb Squad', sub: 'Cut the Wire!', icon: Scissors },
+            { id: 'fighter', label: '🥊 Boss Knockout', sub: '1v1 Boxing', icon: Swords },
+            { id: 'pirate', label: '🏴‍☠️ Pirate Cannon', sub: 'Sink Ships!', icon: Anchor },
+            { id: 'ninja', label: '🥷 Word Ninja', sub: 'Slash Words!', icon: Sparkles },
+            { id: 'zombie', label: '🧟 Zombie Whack', sub: 'Bonk Zombies', icon: Hammer },
+            { id: 'shark', label: '🦈 Hungry Shark', sub: 'Chomp Words', icon: Utensils },
+            { id: 'racer', label: '🏎️ Turbo Racer', sub: 'Nitro Race', icon: Car },
           ].map((tab) => {
-            const Icon = tab.icon;
             const active = mode === tab.id;
             return (
               <button
@@ -932,20 +953,15 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                   setMode(tab.id as GameMode);
                   setBannerMsg(null);
                 }}
-                className={`p-3 rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 border-2 ${
+                className={`p-2.5 rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between border-2 ${
                   active
                     ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-[0_4px_0_0_#b45309] -translate-y-0.5'
                     : 'bg-slate-900/80 text-white border-white/15 hover:bg-slate-800'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-black truncate">
-                    {tab.label}
-                  </span>
-                  <Icon className="w-4 h-4 shrink-0 opacity-80" />
-                </div>
+                <div className="text-xs font-black truncate">{tab.label}</div>
                 <div
-                  className={`text-[10px] font-bold truncate ${
+                  className={`text-[10px] font-bold truncate mt-0.5 ${
                     active ? 'text-slate-800' : 'text-blue-200'
                   }`}
                 >
@@ -965,14 +981,14 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
             className={`p-3.5 rounded-2xl border-2 flex items-center justify-between gap-4 ${
               bannerMsg.ok
                 ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200'
-                : 'bg-amber-50 dark:bg-amber-950/70 border-amber-400 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                : 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 dark:border-rose-700 text-rose-900 dark:text-rose-200'
             }`}
           >
             <div className="flex items-center gap-2.5 text-xs sm:text-sm font-extrabold">
               {bannerMsg.ok ? (
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               ) : (
-                <XCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
               )}
               <span>{bannerMsg.text}</span>
             </div>
@@ -992,86 +1008,95 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
         )}
 
         {/* ===============================================================
-            GAME 1: 🚀 SPACE LASER WORD SHOOTER (PLAYABLE FIRING GAME)
+            GAME 1: 🎯 SNIPER SCOPE: MOVING TARGET SHOOTER (FIRING GAME!)
            =============================================================== */}
-        {mode === 'laser' && (
+        {mode === 'sniper' && (
           <div className="space-y-4">
-            {/* Mission Bar */}
-            <div className="p-4 rounded-2xl bg-slate-900 text-white border-2 border-cyan-500/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-slate-900 text-white border-2 border-rose-500/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Crosshair className="w-6 h-6 text-cyan-400 animate-spin" />
+                <Crosshair className="w-6 h-6 text-rose-400 animate-pulse" />
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
-                    Space Laser Firing Mission #{laserMissionIdx + 1} • Click any UFO or press SPACEBAR to FIRE!
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-300">
+                    🎯 Tactical Sniper Gallery • Wave #{sniperWaveIdx + 1}
                   </span>
                   <h3 className="text-base sm:text-xl font-black text-amber-300">
-                    {currentLaserMission.prompt}
+                    {currentSniperWave.mission}
                   </h3>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLaserPaused(!laserPaused)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  {laserPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                  <span>{laserPaused ? 'Resume UFOs' : 'Pause UFOs'}</span>
-                </button>
+
+              <div className="flex items-center gap-2.5">
+                <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-black text-amber-300">
+                  🔫 Ammo: {ammo}/6
+                </div>
                 <button
                   type="button"
                   onClick={() => {
-                    setUfoY(14);
-                    setLaserMissionIdx((i) => i + 1);
+                    playLaserSound();
+                    setAmmo(6);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-black cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer"
+                >
+                  🔄 Reload (6/6)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSniperWaveIdx((w) => w + 1)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold cursor-pointer"
                 >
                   Next Wave →
                 </button>
               </div>
             </div>
 
-            {/* Interactive Starfield Firing Canvas */}
+            {/* Moving Targets Sniper Field */}
             <div
-              ref={laserArenaRef}
+              ref={sniperBoxRef}
               onMouseMove={(e) => {
-                if (!laserArenaRef.current) return;
-                const rect = laserArenaRef.current.getBoundingClientRect();
-                const relX = ((e.clientX - rect.left) / rect.width) * 100;
-                setShipX(Math.min(88, Math.max(12, relX)));
+                if (!sniperBoxRef.current) return;
+                const r = sniperBoxRef.current.getBoundingClientRect();
+                setScopePos({
+                  x: ((e.clientX - r.left) / r.width) * 100,
+                  y: ((e.clientY - r.top) / r.height) * 100,
+                });
               }}
-              className="relative h-[360px] sm:h-[400px] w-full rounded-3xl bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 border-2 border-indigo-700 overflow-hidden select-none shadow-inner"
+              className={`relative h-[350px] sm:h-[390px] w-full rounded-3xl bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 border-2 border-rose-500/70 overflow-hidden cursor-crosshair select-none ${
+                muzzleFlash ? 'ring-4 ring-amber-400 bg-slate-800' : ''
+              }`}
             >
-              {/* Decorative Stars */}
-              <div className="absolute inset-0 opacity-35 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px]" />
+              {/* Shooting Range Horizontal Rails */}
+              <div className="absolute top-[22%] inset-x-0 h-1 bg-slate-800 border-b border-slate-700" />
+              <div className="absolute top-[50%] inset-x-0 h-1 bg-slate-800 border-b border-slate-700" />
+              <div className="absolute top-[78%] inset-x-0 h-1 bg-slate-800 border-b border-slate-700" />
 
-              {/* 4 Descending Enemy Word UFOs */}
-              {currentLaserMission.targets.map((target, idx) => {
-                const leftPct = ufoPositions[idx];
-                const isExploded = explodedIdx === idx;
+              {/* Moving Targets */}
+              {currentSniperWave.targets.map((tgt, idx) => {
+                const topPct = tgt.row === 0 ? 15 : tgt.row === 1 ? 43 : 71;
+                const leftPct = targetOffsets[idx] ?? 30;
+                const isShattered = shatteredIdx === idx;
                 return (
                   <button
-                    key={`${laserMissionIdx}-${idx}`}
+                    key={`${sniperWaveIdx}-${idx}`}
                     type="button"
-                    onClick={() => fireLaserAtTarget(idx)}
+                    onClick={() => handleSniperShot(idx)}
                     style={{
                       left: `${leftPct}%`,
-                      top: `${ufoY}%`,
+                      top: `${topPct}%`,
                     }}
-                    className={`absolute -translate-x-1/2 transition-all duration-150 cursor-crosshair group ${
-                      isExploded ? 'scale-150 opacity-0' : 'hover:scale-110'
+                    className={`absolute -translate-x-1/2 transition-transform duration-75 cursor-crosshair group ${
+                      isShattered ? 'scale-150 opacity-0' : 'hover:scale-110'
                     }`}
                   >
-                    {isExploded ? (
-                      <div className="text-4xl animate-ping">💥</div>
+                    {isShattered ? (
+                      <span className="text-4xl">💥🎯</span>
                     ) : (
-                      <div className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-b from-purple-600 to-indigo-900 border-2 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.45)] flex flex-col items-center gap-0.5 min-w-[110px] sm:min-w-[140px]">
-                        <span className="text-lg leading-none">🛸</span>
-                        <span className="font-black text-xs sm:text-base tracking-tight">
-                          {target.word}
+                      <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-b from-amber-400 to-orange-500 text-slate-950 border-2 border-white shadow-[0_6px_0_0_#92400e] flex items-center gap-2">
+                        <span className="text-lg">🦆</span>
+                        <span className="font-black text-sm sm:text-base">
+                          {tgt.word}
                         </span>
-                        <span className="text-[9px] font-extrabold uppercase tracking-widest text-cyan-300 group-hover:text-amber-300">
-                          🎯 Click to Shoot!
+                        <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center">
+                          🎯
                         </span>
                       </div>
                     )}
@@ -1079,47 +1104,263 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                 );
               })}
 
-              {/* Active Laser Beam Bolt */}
-              {laserBeam && (
-                <div
-                  style={{
-                    left: `${laserBeam.x}%`,
-                    top: `${ufoY + 6}%`,
-                    bottom: '64px',
-                  }}
-                  className={`absolute -translate-x-1/2 w-2 rounded-full animate-pulse ${
-                    laserBeam.hitOk
-                      ? 'bg-gradient-to-t from-amber-300 via-emerald-400 to-cyan-300 shadow-[0_0_25px_#34d399]'
-                      : 'bg-gradient-to-t from-rose-500 to-amber-500 shadow-[0_0_20px_#f43f5e]'
-                  }`}
-                />
-              )}
-
-              {/* Player Spaceship Cannon at Bottom */}
+              {/* Tactical Sniper Scope Overlay */}
               <div
-                style={{ left: `${shipX}%` }}
-                className="absolute bottom-3 -translate-x-1/2 transition-all duration-75 flex flex-col items-center pointer-events-none"
+                style={{ left: `${scopePos.x}%`, top: `${scopePos.y}%` }}
+                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-rose-500/80 shadow-[0_0_25px_rgba(244,63,94,0.5)] flex items-center justify-center"
               >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-t from-blue-700 via-cyan-500 to-emerald-400 border-2 border-white flex items-center justify-center text-2xl shadow-[0_0_25px_rgba(56,189,248,0.8)]">
-                  🚀
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300 mt-1">
-                  TICI Laser Ship
-                </span>
+                <div className="w-full h-0.5 bg-rose-500/60 absolute" />
+                <div className="h-full w-0.5 bg-rose-500/60 absolute" />
+                <div className="w-3 h-3 rounded-full border-2 border-amber-400" />
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Quick Fire Buttons for Mobile / Instant Shooting */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {currentLaserMission.targets.map((target, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => fireLaserAtTarget(idx)}
-                  className="p-3 rounded-2xl bg-slate-900 hover:bg-indigo-950 text-white border-2 border-cyan-500/50 hover:border-amber-400 font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm active:translate-y-0.5 transition-all"
+        {/* ===============================================================
+            GAME 2: 💣 TICK-TOCK BOMB DEFUSAL SQUAD (CUT THE RIGHT WIRE!)
+           =============================================================== */}
+        {mode === 'bomb' && (
+          <div className="space-y-5">
+            <div className="p-5 sm:p-6 rounded-3xl bg-slate-950 text-white border-2 border-rose-600 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-widest text-rose-400">
+                    💣 High-Stakes Grammar Bomb Squad
+                  </span>
+                  <p className="text-sm sm:text-base font-extrabold text-amber-300 mt-1">
+                    {currentBomb.chiefPanicQuote}
+                  </p>
+                </div>
+
+                {/* Digital Red LED Bomb Countdown */}
+                <div
+                  className={`px-5 py-3 rounded-2xl border-2 font-mono text-2xl sm:text-3xl font-black tracking-widest shrink-0 text-center ${
+                    bombState === 'exploded'
+                      ? 'bg-rose-600 text-white border-white animate-bounce'
+                      : bombState === 'defused'
+                        ? 'bg-emerald-600 text-white border-emerald-300'
+                        : 'bg-slate-900 text-rose-500 border-rose-500 animate-pulse'
+                  }`}
                 >
-                  <span>⚡ FIRE:</span>
-                  <span className="text-amber-300">{target.word}</span>
+                  {bombState === 'exploded'
+                    ? '💥 BOOM!'
+                    : bombState === 'defused'
+                      ? '😮‍💨 SAFE!'
+                      : `00:${String(bombTimer).padStart(2, '0')}`}
+                </div>
+              </div>
+
+              {/* Sentence Puzzle on the Dynamite Casing */}
+              <div className="p-5 rounded-2xl bg-slate-900 border-2 border-slate-700 text-center space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Sentence Engraved on the Bomb:
+                </span>
+                <p className="text-lg sm:text-2xl font-black text-white">
+                  {currentBomb.sentencePuzzle}
+                </p>
+              </div>
+
+              {/* 4 Colored Wires to Cut */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {currentBomb.wires.map((w) => (
+                  <button
+                    key={w.color}
+                    type="button"
+                    disabled={bombState !== 'ticking'}
+                    onClick={() => handleCutWire(w)}
+                    className={`p-4 rounded-2xl ${w.bgClass} border-2 ${w.borderClass} text-white font-black text-sm sm:text-base flex items-center justify-between gap-3 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-lg`}
+                  >
+                    <span>{w.label}</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-950/40 text-xs flex items-center gap-1">
+                      <Scissors className="w-3.5 h-3.5" />
+                      <span>Cut Wire</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {bombState !== 'ticking' && (
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={nextBombMission}
+                    className="btn-3d-emerald px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer"
+                  >
+                    💣 Bring Next Bomb! →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===============================================================
+            GAME 3: 🥊 STREET FIGHTER: BOSS KNOCKOUT! (1v1 BOXING)
+           =============================================================== */}
+        {mode === 'fighter' && (
+          <div className="space-y-5">
+            {/* Boxing Ring Arena */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-indigo-950 via-slate-900 to-rose-950 text-white border-2 border-amber-400/80 space-y-6">
+              {/* Top Health Bars (You vs. Boss) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                {/* Player HP */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-emerald-300">🥊 YOU (Miami Champ)</span>
+                    <span>{playerHp} HP</span>
+                  </div>
+                  <div className="w-full h-4 rounded-full bg-slate-800 p-0.5 border border-slate-600">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
+                      style={{ width: `${playerHp}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Boss HP */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-rose-300">
+                      {currentFighter.bossEmoji} BOSS: {currentFighter.bossName}
+                    </span>
+                    <span>{bossHp} HP</span>
+                  </div>
+                  <div className="w-full h-4 rounded-full bg-slate-800 p-0.5 border border-slate-600">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-rose-600 to-amber-500 transition-all duration-300"
+                      style={{ width: `${bossHp}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Boss Character & Broken-Grammar Fireball Attack */}
+              <div className="p-5 rounded-2xl bg-slate-900/90 border-2 border-rose-500/60 flex flex-col sm:flex-row items-center gap-5">
+                <div
+                  className={`text-6xl sm:text-7xl transition-transform duration-300 ${
+                    bossHitAnim ? 'scale-125 rotate-45' : ''
+                  }`}
+                >
+                  {bossHitAnim ? '😵💥' : currentFighter.bossEmoji}
+                </div>
+                <div className="space-y-2 text-center sm:text-left">
+                  <p className="text-xs font-bold text-rose-300 italic">
+                    {currentFighter.bossTaunt}
+                  </p>
+                  <div className="p-3 rounded-xl bg-rose-950/90 border border-rose-500 text-sm sm:text-lg font-black text-amber-300">
+                    {currentFighter.brokenAttack}
+                  </div>
+                </div>
+              </div>
+
+              {/* Choose Your Counter-Punch Combo */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-300">
+                  🥊 Choose the CORRECT Counter-Punch to Knockout the Boss:
+                </span>
+                <div className="grid grid-cols-1 gap-3">
+                  {currentFighter.moves.map((m, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleThrowPunch(m)}
+                      className="p-4 rounded-2xl bg-slate-800 hover:bg-indigo-900 border-2 border-amber-400/60 hover:border-amber-300 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all hover:-translate-y-0.5"
+                    >
+                      <span className="font-black text-sm sm:text-base text-white">
+                        {m.correction}
+                      </span>
+                      <span className="px-3 py-1 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">
+                        {m.moveName}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===============================================================
+            GAME 4: 🏴‍☠️ PIRATE CANNON SHIP BATTLE!
+           =============================================================== */}
+        {mode === 'pirate' && (
+          <div className="space-y-5">
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-sky-900 via-blue-950 to-slate-950 text-white border-2 border-amber-500/80 space-y-6">
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-amber-400/50">
+                <h3 className="text-base sm:text-xl font-black text-amber-300">
+                  {currentPirate.captainOrder}
+                </h3>
+              </div>
+
+              {/* 3 Sailing Pirate Ships on the Ocean */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
+                {currentPirate.ships.map((ship, idx) => {
+                  const isSunk = sunkShipIdx === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleFireCannon(idx)}
+                      className={`p-5 rounded-3xl bg-gradient-to-b from-slate-800 to-blue-900 border-2 border-cyan-400/70 hover:border-amber-400 flex flex-col items-center gap-2 transition-all cursor-crosshair ${
+                        isSunk ? 'scale-75 rotate-12 opacity-30' : 'hover:-translate-y-2'
+                      }`}
+                    >
+                      <span className="text-[10px] font-black uppercase text-cyan-300">
+                        {ship.name} • {ship.distance}
+                      </span>
+                      <span className="text-5xl">
+                        {isSunk ? '💥🌊' : '⛵🏴‍☠️'}
+                      </span>
+                      <span className="text-lg font-black text-amber-300">
+                        &ldquo;{ship.word}&rdquo;
+                      </span>
+                      <span className="px-3 py-1 rounded-xl bg-rose-600 text-white text-xs font-black mt-1">
+                        💣 Fire Cannon!
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {octopusSplash && (
+                <div className="text-center text-sm font-black text-amber-300 animate-bounce">
+                  🐙 SPLASH!! The Giant Octopus threw your cannonball back! Aim again!
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===============================================================
+            GAME 5: 🥷 WORD NINJA SLASH!
+           =============================================================== */}
+        {mode === 'ninja' && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-slate-900 text-white border-2 border-emerald-500/60">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                🥷 Dojo Word Slicer
+              </span>
+              <h3 className="text-base sm:text-xl font-black text-amber-300">
+                ⚔️ SLASH ONLY REAL ENGLISH WORDS! (Do NOT slash Fake Words / Bombs 🧨!)
+              </h3>
+            </div>
+
+            <div className="relative h-[330px] w-full rounded-3xl bg-gradient-to-b from-slate-950 via-stone-900 to-slate-950 border-2 border-amber-500/70 overflow-hidden select-none">
+              {flyingFruits.map((item) => (
+                <button
+                  key={item.uid}
+                  type="button"
+                  onClick={() => handleNinjaSlash(item.uid)}
+                  style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                  className={`absolute -translate-x-1/2 px-4 py-3 rounded-2xl border-2 font-black text-sm sm:text-base flex items-center gap-2 transition-all cursor-pointer ${
+                    item.slashed
+                      ? 'scale-125 rotate-12 opacity-0'
+                      : 'bg-white text-slate-950 border-amber-400 hover:scale-110 shadow-xl'
+                  }`}
+                >
+                  <span className="text-2xl">{item.emoji}</span>
+                  <span>{item.word}</span>
                 </button>
               ))}
             </div>
@@ -1127,53 +1368,24 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
         )}
 
         {/* ===============================================================
-            GAME 2: 🧟 ZOMBIE GRAMMAR WHACK! (FUNNY WHACK-A-ZOMBIE GAME)
+            GAME 6: 🧟 ZOMBIE GRAMMAR WHACK!
            =============================================================== */}
         {mode === 'zombie' && (
           <div className="space-y-5">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-purple-950 text-white border-2 border-emerald-500/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
-                  🥊 Funny Reflex Game • Zombies Whacked: {zombieScoreCount}
-                </span>
-                <h3 className="text-base sm:text-xl font-black mt-0.5">
-                  WHACK the Zombies holding BAD Grammar! (Don&apos;t punch the Professor! 🧑‍🏫)
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const shuffled = [...ZOMBIE_POP_BANK].sort(
-                    () => Math.random() - 0.5
-                  );
-                  setActiveHoles([
-                    shuffled[0],
-                    shuffled[1],
-                    null,
-                    shuffled[2],
-                    null,
-                    shuffled[3],
-                  ]);
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-black cursor-pointer shrink-0"
-              >
-                🧟 Spawn New Zombies!
-              </button>
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-purple-950 text-white border-2 border-emerald-500/60">
+              <h3 className="text-base sm:text-xl font-black">
+                🥊 WHACK the Zombies holding BAD Grammar! (Don&apos;t punch the Professor! 🧑‍🏫)
+              </h3>
             </div>
 
-            {/* 6 Whack-a-Zombie Graveyard Holes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeHoles.map((item, holeIdx) => {
                 const isWhacked = whackedHoleIdx === holeIdx;
                 return (
                   <div
                     key={holeIdx}
-                    className="h-44 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-slate-700 p-4 flex flex-col items-center justify-end relative overflow-hidden shadow-inner"
+                    className="h-44 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-slate-700 p-4 flex flex-col items-center justify-end relative overflow-hidden"
                   >
-                    <span className="absolute top-3 left-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      Hole #{holeIdx + 1}
-                    </span>
-
                     {item ? (
                       <button
                         type="button"
@@ -1182,26 +1394,19 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                           isWhacked
                             ? 'scale-75 rotate-12 bg-rose-600 text-white border-white'
                             : item.isZombieBadGrammar
-                              ? 'bg-gradient-to-b from-emerald-600 to-teal-900 border-emerald-300 text-white hover:-translate-y-1 shadow-[0_6px_0_0_#064e3b]'
-                              : 'bg-gradient-to-b from-blue-600 to-indigo-900 border-blue-300 text-white hover:-translate-y-1 shadow-[0_6px_0_0_#1e3a8a]'
+                              ? 'bg-gradient-to-b from-emerald-600 to-teal-900 border-emerald-300 text-white hover:-translate-y-1'
+                              : 'bg-gradient-to-b from-blue-600 to-indigo-900 border-blue-300 text-white hover:-translate-y-1'
                         }`}
                       >
-                        <div className="text-sm sm:text-base font-black leading-snug">
+                        <div className="text-sm sm:text-base font-black">
                           {isWhacked ? '💥 BONK!!' : item.displayText}
-                        </div>
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 mt-1.5">
-                          {item.isZombieBadGrammar
-                            ? '🥊 Tap to WHACK Bad Grammar!'
-                            : '🧑‍🏫 Careful! Check Grammar!'}
                         </div>
                       </button>
                     ) : (
                       <div className="w-full py-6 text-center text-xs font-bold text-slate-600">
-                        🕳️ Waiting for Zombie...
+                        🕳️ Waiting...
                       </div>
                     )}
-
-                    {/* Hole Rim */}
                     <div className="w-4/5 h-3 rounded-full bg-slate-950 border border-slate-700 mt-2" />
                   </div>
                 );
@@ -1211,44 +1416,38 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
         )}
 
         {/* ===============================================================
-            GAME 3: 🦈 HUNGRY MIAMI SHARK (FUNNY WORD & FOOD CATCHER)
+            GAME 7: 🦈 HUNGRY MIAMI SHARK
            =============================================================== */}
         {mode === 'shark' && (
           <div className="space-y-4">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-900 via-blue-900 to-indigo-900 text-white border-2 border-cyan-400/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
-                  🍔 Chef Shark&apos;s Funny Beach Restaurant • Tap falling food to CHOMP!
-                </span>
-                <h3 className="text-sm sm:text-lg font-black text-amber-300 mt-0.5">
-                  {currentSharkRound.orderTitle}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setFallingItems([]);
-                  setSharkRoundIdx((i) => i + 1);
-                }}
-                className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black cursor-pointer shrink-0"
-              >
-                Next Chef Order →
-              </button>
+            <div className="p-4 rounded-2xl bg-cyan-950 text-white border-2 border-cyan-500/60">
+              <h3 className="text-sm sm:text-lg font-black text-amber-300">
+                {currentSharkRound.orderTitle}
+              </h3>
             </div>
 
-            {/* Ocean Catcher Stage */}
-            <div className="relative h-[340px] sm:h-[380px] w-full rounded-3xl bg-gradient-to-b from-sky-900 via-blue-950 to-slate-950 border-2 border-cyan-600 overflow-hidden select-none">
-              {/* Falling Food & Boots */}
+            <div className="relative h-[340px] w-full rounded-3xl bg-gradient-to-b from-sky-900 via-blue-950 to-slate-950 border-2 border-cyan-600 overflow-hidden select-none">
               {fallingItems.map((item) => (
                 <button
                   key={item.uid}
                   type="button"
-                  onClick={() => handleEatFallingItem(item.uid)}
-                  style={{
-                    left: `${item.x}%`,
-                    top: `${item.y}%`,
+                  onClick={() => {
+                    setSharkX(item.x);
+                    setFallingItems((prev) =>
+                      prev.filter((i) => i.uid !== item.uid)
+                    );
+                    if (item.isGood) {
+                      playChompSound();
+                      setSharkMouthMsg(`😋 YUM! "${item.word}"!`);
+                      awardPoints(35, true, item.feedback, item.feedback);
+                    } else {
+                      playErrorSound();
+                      setSharkMouthMsg('🤢 YUCK! Old Boot!');
+                      awardPoints(0, false, item.feedback);
+                    }
                   }}
-                  className="absolute -translate-x-1/2 px-3.5 py-2 rounded-2xl bg-white/95 text-slate-900 border-2 border-amber-400 shadow-lg hover:scale-110 transition-transform cursor-pointer flex items-center gap-2"
+                  style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                  className="absolute -translate-x-1/2 px-3.5 py-2 rounded-2xl bg-white text-slate-900 border-2 border-amber-400 shadow-lg flex items-center gap-2 cursor-pointer"
                 >
                   <span className="text-xl">{item.emoji}</span>
                   <span className="font-black text-xs sm:text-sm">
@@ -1257,33 +1456,25 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                 </button>
               ))}
 
-              {/* Hungry Shark at Bottom */}
               <div
                 style={{ left: `${sharkX}%` }}
                 className="absolute bottom-3 -translate-x-1/2 transition-all duration-150 flex flex-col items-center pointer-events-none"
               >
-                <div className="px-4 py-1.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs shadow-md mb-1 whitespace-nowrap">
+                <div className="px-4 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-xs mb-1">
                   {sharkMouthMsg}
                 </div>
-                <div className="text-5xl drop-shadow-lg">🦈</div>
+                <div className="text-5xl">🦈</div>
               </div>
             </div>
           </div>
         )}
 
         {/* ===============================================================
-            GAME 4: 🏎️ MIAMI TURBO RACER (FUNNY NITRO CAR RACE)
+            GAME 8: 🏎️ MIAMI TURBO RACER
            =============================================================== */}
         {mode === 'racer' && (
           <div className="space-y-5">
-            {/* Animated 2-Lane Miami Highway */}
-            <div className="p-5 rounded-3xl bg-slate-900 border-2 border-slate-700 space-y-4 relative overflow-hidden">
-              <div className="flex items-center justify-between text-xs font-black text-amber-300">
-                <span>🏎️ MIAMI BEACH TURBO DRAGWAY</span>
-                <span>🏁 FINISH LINE (100m)</span>
-              </div>
-
-              {/* Lane 1: Player Supercar */}
+            <div className="p-5 rounded-3xl bg-slate-900 border-2 border-slate-700 space-y-4">
               <div className="relative h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center px-3">
                 <div
                   style={{ left: `${playerCarProgress}%` }}
@@ -1291,7 +1482,7 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                     bananaSpin ? 'animate-spin' : ''
                   }`}
                 >
-                  {nitroActive && <span className="text-xl animate-pulse">🔥🔥</span>}
+                  {nitroActive && <span className="text-xl">🔥🔥</span>}
                   <span className="text-3xl">🏎️</span>
                   <span className="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-black text-[10px]">
                     YOU
@@ -1300,7 +1491,6 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
                 <div className="ml-auto text-xl">🏁</div>
               </div>
 
-              {/* Lane 2: Officer Bob Rival Car */}
               <div className="relative h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center px-3">
                 <div
                   style={{ left: `${rivalCarProgress}%` }}
@@ -1315,173 +1505,43 @@ export default function EnglishLearningGameArena({ onXpEarned }: Props) {
               </div>
             </div>
 
-            {/* Dialogue / Idiom Prompt for Nitro */}
             <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-200 dark:border-slate-700 space-y-4">
               <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                 {currentRacer.situation}
               </h3>
-
               <div className="grid grid-cols-1 gap-3">
                 {currentRacer.options.map((opt, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => handleRacerPick(opt)}
-                    className="p-4 rounded-2xl text-left font-extrabold text-xs sm:text-sm bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] hover:-translate-y-0.5 transition-all cursor-pointer"
+                    onClick={() => {
+                      if (opt.isCorrect) {
+                        playSuccessSound();
+                        setNitroActive(true);
+                        setPlayerCarProgress((p) => (p >= 80 ? 20 : p + 25));
+                        awardPoints(
+                          45,
+                          true,
+                          opt.funnyOutcome,
+                          currentRacer.spokenAnswer
+                        );
+                        setTimeout(() => {
+                          setNitroActive(false);
+                          setRacerIdx((i) => i + 1);
+                        }, 1100);
+                      } else {
+                        playErrorSound();
+                        setBananaSpin(true);
+                        awardPoints(0, false, opt.funnyOutcome);
+                        setTimeout(() => setBananaSpin(false), 900);
+                      }
+                    }}
+                    className="p-4 rounded-2xl text-left font-extrabold text-xs sm:text-sm bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 cursor-pointer"
                   >
                     {opt.text}
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ===============================================================
-            GAME 5: ⚡ WORD BLITZ (SPEED MEANING MATCH)
-           =============================================================== */}
-        {mode === 'blitz' && (
-          <div className="space-y-5">
-            <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                    {currentBlitz.word}
-                  </span>
-                  <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                    {currentBlitz.phonetic}
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 italic mt-1">
-                  &ldquo;{currentBlitz.sentence}&rdquo;
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  speakRealisticText(
-                    `${currentBlitz.word}. ${currentBlitz.sentence}`,
-                    { rate: 0.92 }
-                  )
-                }
-                className="btn-3d-primary px-4 py-3 rounded-2xl text-xs font-black flex items-center gap-2 shrink-0 cursor-pointer"
-              >
-                <Volume2 className="w-4 h-4" />
-                <span>Listen Word</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {currentBlitz.options.map((opt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    if (opt.isCorrect) {
-                      playSuccessSound();
-                      awardPoints(
-                        25,
-                        true,
-                        currentBlitz.explanation,
-                        `${currentBlitz.word}. ${currentBlitz.sentence}`
-                      );
-                      setTimeout(() => setBlitzIdx((i) => i + 1), 900);
-                    } else {
-                      playErrorSound();
-                      awardPoints(0, false, currentBlitz.explanation);
-                    }
-                  }}
-                  className="p-4 rounded-2xl text-left font-extrabold text-xs sm:text-sm bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 shadow-[0_4px_0_0_#e2e8f0] dark:shadow-[0_4px_0_0_#1e293b] cursor-pointer"
-                >
-                  {opt.text}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ===============================================================
-            GAME 6: 🧩 SENTENCE BUILDER PRO
-           =============================================================== */}
-        {mode === 'scramble' && (
-          <div className="space-y-5">
-            <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                  {currentScramble.topic}
-                </span>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1">
-                  Build: {currentScramble.clue}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    speakRealisticText(currentScramble.targetSentence, {
-                      rate: 0.85,
-                    })
-                  }
-                  className="btn-3d-primary px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Volume2 className="w-4 h-4" />
-                  <span>Listen</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowHint(!showHint)}
-                  className="btn-3d-secondary px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Lightbulb className="w-4 h-4 text-amber-500" />
-                  <span>Hint</span>
-                </button>
-              </div>
-            </div>
-
-            {showHint && (
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 text-xs font-bold text-amber-900 dark:text-amber-200">
-                💡 {currentScramble.hint}
-              </div>
-            )}
-
-            <div className="min-h-[70px] p-4 rounded-2xl bg-slate-100 dark:bg-slate-950 border-2 border-dashed border-blue-400 flex flex-wrap items-center gap-2">
-              {selectedWordIndices.length === 0 ? (
-                <span className="text-xs font-bold text-slate-400">
-                  Tap words below in order...
-                </span>
-              ) : (
-                selectedWordIndices.map((wIdx, pos) => (
-                  <button
-                    key={`${wIdx}-${pos}`}
-                    type="button"
-                    onClick={() => handleScrambleTap(wIdx)}
-                    className="px-3.5 py-2 rounded-xl bg-blue-600 text-white font-black text-xs sm:text-sm cursor-pointer"
-                  >
-                    {currentScramble.words[wIdx]}
-                  </button>
-                ))
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              {currentScramble.words.map((w, idx) => {
-                const used = selectedWordIndices.includes(idx);
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={used}
-                    onClick={() => handleScrambleTap(idx)}
-                    className={`px-4 py-2.5 rounded-2xl font-extrabold text-xs sm:text-sm border-2 ${
-                      used
-                        ? 'opacity-30 cursor-not-allowed'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-500 cursor-pointer'
-                    }`}
-                  >
-                    {w}
-                  </button>
-                );
-              })}
             </div>
           </div>
         )}

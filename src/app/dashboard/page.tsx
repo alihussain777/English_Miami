@@ -166,11 +166,11 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <h3 className="font-black text-base text-slate-900 dark:text-white">English Games</h3>
                   <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-600 text-white">
-                    6 GAMES
+                    8 GAMES
                   </span>
                 </div>
                 <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Play Space Laser Shooter, Zombie Grammar Whack, Hungry Shark & Turbo Racer!
+                  Play Sniper Scope Firing, Bomb Defusal Squad, Boss Knockout, Pirate Cannon & Shark Catcher!
                 </p>
               </div>
               <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-5 group-hover:translate-x-1 transition-transform">
