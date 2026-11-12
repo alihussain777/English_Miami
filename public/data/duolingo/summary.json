@@ -1,0 +1,189 @@
+{
+ "bases": {
+  "ar": {
+   "sessions": 60,
+   "unique": 157,
+   "cefr": {
+    "intro": 910
+   },
+   "skill_tree_id": "b2098be770d9ea454bfec881fe0eb285"
+  },
+  "cs": {
+   "sessions": 60,
+   "unique": 195,
+   "cefr": {
+    "intro": 888
+   },
+   "skill_tree_id": "42508d39029ed05b554e1c3bad439599"
+  },
+  "fr": {
+   "sessions": 60,
+   "unique": 231,
+   "cefr": {
+    "intro": 904
+   },
+   "skill_tree_id": "2daa6aa9db8c218d647fb8644935a342"
+  },
+  "el": {
+   "sessions": 60,
+   "unique": 192,
+   "cefr": {
+    "intro": 892
+   },
+   "skill_tree_id": "c719efceede535c8c2587716dcbde8b2"
+  },
+  "hi": {
+   "sessions": 50,
+   "unique": 125,
+   "cefr": {
+    "intro": 725
+   },
+   "skill_tree_id": "22cf2b967e2041473013d0e5232d5cd4"
+  },
+  "id": {
+   "sessions": 50,
+   "unique": 185,
+   "cefr": {
+    "intro": 738
+   },
+   "skill_tree_id": "9a6b96f7ce31a36c836d372f64501a78"
+  },
+  "ko": {
+   "sessions": 50,
+   "unique": 167,
+   "cefr": {
+    "intro": 758
+   },
+   "skill_tree_id": "27a8c2c7f60f718fa8681a4270828a4e"
+  },
+  "pl": {
+   "sessions": 60,
+   "unique": 185,
+   "cefr": {
+    "intro": 893
+   },
+   "skill_tree_id": "244ddc2f64f3a191b37a5abe8660c9e0"
+  },
+  "pt": {
+   "sessions": 60,
+   "unique": 171,
+   "cefr": {
+    "intro": 887
+   },
+   "skill_tree_id": "5518ab49e70fa5b8f3a00ecd3e9fa44c"
+  },
+  "ro": {
+   "sessions": 60,
+   "unique": 185,
+   "cefr": {
+    "intro": 898
+   },
+   "skill_tree_id": "c35094f6e40ee9eef8531e7a20614ba3"
+  },
+  "ru": {
+   "sessions": 60,
+   "unique": 256,
+   "cefr": {
+    "intro": 900
+   },
+   "skill_tree_id": "cb25db72866583fab070e89cd2dc8772"
+  },
+  "es": {
+   "sessions": 60,
+   "unique": 169,
+   "cefr": {
+    "intro": 897
+   },
+   "skill_tree_id": "17d6f1d19f0b5889d74ae7fd59a5eb69"
+  },
+  "sv": {
+   "sessions": 60,
+   "unique": 157,
+   "cefr": {
+    "intro": 917
+   },
+   "skill_tree_id": "f37a85d2340b3d333443ec2f44689689"
+  },
+  "th": {
+   "sessions": 50,
+   "unique": 151,
+   "cefr": {
+    "intro": 754
+   },
+   "skill_tree_id": "63c91858acb523cdf09b432afdb3d82d"
+  },
+  "tr": {
+   "sessions": 60,
+   "unique": 161,
+   "cefr": {
+    "intro": 889
+   },
+   "skill_tree_id": "d35513bef6a3cb7076cbaf01e335028f"
+  },
+  "uk": {
+   "sessions": 60,
+   "unique": 185,
+   "cefr": {
+    "intro": 888
+   },
+   "skill_tree_id": "076b8c17a11115740c21be4e98955893"
+  },
+  "ur": {
+   "sessions": 60,
+   "unique": 164,
+   "cefr": {
+    "intro": 890
+   },
+   "skill_tree_id": "ab67a09db95073a97ee739c5077bba36"
+  },
+  "vi": {
+   "sessions": 60,
+   "unique": 148,
+   "cefr": {
+    "intro": 905
+   },
+   "skill_tree_id": "1fc471ddacc38a504cc9aa48ec3e90e9"
+  },
+  "zh": {
+   "sessions": 60,
+   "unique": 237,
+   "cefr": {
+    "intro": 910
+   },
+   "skill_tree_id": "1a5422fce7f9cc05e96a406cbece8cbf"
+  },
+  "de": {
+   "sessions": 60,
+   "unique": 281,
+   "cefr": {
+    "intro": 907
+   },
+   "skill_tree_id": "6b74efb8e1664404ea4fe268576b08f3"
+  },
+  "hu": {
+   "sessions": 60,
+   "unique": 191,
+   "cefr": {
+    "intro": 889
+   },
+   "skill_tree_id": "21213bd09577f9c33a3a1263a43ac1ca"
+  },
+  "it": {
+   "sessions": 60,
+   "unique": 187,
+   "cefr": {
+    "intro": 895
+   },
+   "skill_tree_id": "c595b5c48033779bd3f1af8e1db26cfc"
+  },
+  "ja": {
+   "sessions": 60,
+   "unique": 244,
+   "cefr": {
+    "intro": 920
+   },
+   "skill_tree_id": "1a79419f8074f7d0f9481970dec8dc64"
+  }
+ },
+ "total_unique": 4324
+}

@@ -1,0 +1,36 @@
+{
+ "base_counts": {
+  "ar": 157,
+  "cs": 195,
+  "de": 281,
+  "el": 192,
+  "es": 169,
+  "fr": 231,
+  "hi": 125,
+  "hu": 191,
+  "id": 185,
+  "it": 187,
+  "ja": 244,
+  "ko": 167,
+  "pl": 185,
+  "pt": 171,
+  "ro": 185,
+  "ru": 256,
+  "sv": 157,
+  "th": 151,
+  "tr": 161,
+  "uk": 185,
+  "ur": 164,
+  "vi": 148,
+  "zh": 237
+ },
+ "type_counts": {
+  "translate": 1835,
+  "listenTap": 870,
+  "speak": 893,
+  "listen": 609,
+  "name": 111,
+  "listenIsolation": 6
+ },
+ "total": 4324
+}

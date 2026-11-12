@@ -15,7 +15,7 @@ export default function AboutPage() {
           <img
             src="/images/brand/logo-tici.png"
             alt="TICI Logo"
-            className="w-20 h-20 object-contain mx-auto"
+            className="w-24 h-24 object-contain mx-auto"
           />
           <span className="inline-block text-xs font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
             Trinidad International Cultural Institute (TICI)

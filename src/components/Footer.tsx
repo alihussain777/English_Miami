@@ -8,14 +8,14 @@ export default function Footer() {
       <div className="w-full max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
         {/* Brand & Mission */}
         <div className="md:col-span-2 space-y-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <img
               src="/images/brand/logo-tici.png"
               alt="TICI EnglishMiami Logo"
-              className="w-12 h-12 object-contain"
+              className="w-16 h-16 object-contain"
             />
             <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                 English<span className="text-blue-700 dark:text-blue-400">Miami</span>
               </span>
               <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400 -mt-0.5">

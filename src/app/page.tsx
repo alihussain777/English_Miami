@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { DUOLINGO_BASE_LANGUAGES } from '@/lib/duolingo-languages';
 import {
   ArrowRight,
   Brain,
@@ -37,11 +39,22 @@ interface GalleryItem {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [heroShowcaseMode, setHeroShowcaseMode] = useState<'group' | 'graduation' | 'audio'>('group');
   const [activeDemoTab, setActiveDemoTab] = useState<'A0' | 'B1' | 'C2'>('A0');
   const [speakingSample, setSpeakingSample] = useState(false);
   const [galleryFilter, setGalleryFilter] = useState<'all' | 'fun' | 'graduation'>('all');
   const [lightboxItem, setLightboxItem] = useState<GalleryItem | null>(null);
+
+  const handleChooseLanguageAndStart = (code: string) => {
+    try {
+      localStorage.setItem('tici_base_lang', code);
+      window.dispatchEvent(
+        new CustomEvent('tici-lang-change', { detail: { lang: code } })
+      );
+    } catch {}
+    router.push('/learn');
+  };
 
   const playNativeAudio = (text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -464,6 +477,11 @@ export default function HomePage() {
                       className="w-full h-[340px] sm:h-[400px] object-cover object-center"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/15 to-transparent" />
+                    <img
+                      src="/images/brand/logo-tici.png"
+                      alt="TICI Logo"
+                      className="absolute top-3 right-3 w-13 h-13 sm:w-15 sm:h-15 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]"
+                    />
                     <div className="absolute bottom-0 inset-x-0 p-5 text-white">
                       <span className="inline-block px-2.5 py-0.5 rounded-md bg-blue-600 text-white font-bold text-[10px] uppercase tracking-wider">
                         Miami Campus Community
@@ -487,6 +505,11 @@ export default function HomePage() {
                       className="w-full h-[340px] sm:h-[400px] object-cover object-center"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/15 to-transparent" />
+                    <img
+                      src="/images/brand/logo-tici.png"
+                      alt="TICI Logo"
+                      className="absolute top-3 right-3 w-13 h-13 sm:w-15 sm:h-15 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]"
+                    />
                     <div className="absolute bottom-0 inset-x-0 p-5 text-white">
                       <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-wider">
                         La Gorce Country Club • Miami Beach
@@ -565,6 +588,46 @@ export default function HomePage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================================
+          23-LANGUAGE NATIVE-TO-ENGLISH SELECTOR STRIP
+         ===================================================================== */}
+      <section className="py-14 bg-slate-100/80 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 space-y-6">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <span className="text-xs font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+              23 Native Languages Supported
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+              I Speak... (Learn English From Your Language)
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+              Select your native language below to launch 24+ interactive Basic Duolingo lessons with bilingual translations, word banks, and native audio.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+            {DUOLINGO_BASE_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => handleChooseLanguageAndStart(lang.code)}
+                className="card-3d card-3d-interactive p-3 text-left flex items-center gap-2.5 cursor-pointer"
+              >
+                <span className="text-2xl shrink-0">{lang.flag}</span>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                    {lang.nativeName}
+                  </div>
+                  <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                    {lang.name} → EN
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </section>
@@ -694,6 +757,12 @@ export default function HomePage() {
                       <Maximize2 className="w-4 h-4" />
                     </div>
                   </div>
+                  {/* Official TICI Brand Watermark on Class Pics */}
+                  <img
+                    src="/images/brand/logo-tici.png"
+                    alt="TICI Logo"
+                    className="absolute bottom-3 right-3 w-12 h-12 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                  />
                 </div>
 
                 <div className="p-4 space-y-1">
@@ -726,6 +795,11 @@ export default function HomePage() {
                 alt={lightboxItem.title}
                 className="w-full max-h-[70vh] object-contain mx-auto"
               />
+              <img
+                src="/images/brand/logo-tici.png"
+                alt="TICI Logo"
+                className="absolute bottom-4 right-4 w-16 h-16 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.85)]"
+              />
               <button
                 type="button"
                 onClick={() => setLightboxItem(null)}
@@ -734,13 +808,20 @@ export default function HomePage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4">
-              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
-                {lightboxItem.title}
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                {lightboxItem.subtitle}
-              </p>
+            <div className="p-4 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  {lightboxItem.title}
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  {lightboxItem.subtitle}
+                </p>
+              </div>
+              <img
+                src="/images/brand/logo-tici.png"
+                alt="TICI Logo"
+                className="w-14 h-14 object-contain shrink-0"
+              />
             </div>
           </div>
         </div>
@@ -759,6 +840,11 @@ export default function HomePage() {
                     src="/images/brand/jason-graduation-quartet.jpg"
                     alt="Jason Trinidad with Graduates"
                     className="w-full h-full object-cover object-center"
+                  />
+                  <img
+                    src="/images/brand/logo-tici.png"
+                    alt="TICI Logo"
+                    className="absolute bottom-3 right-3 w-13 h-13 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
                   />
                 </div>
               </div>
@@ -1018,7 +1104,7 @@ export default function HomePage() {
           <img
             src="/images/brand/logo-tici.png"
             alt="TICI Logo"
-            className="w-16 h-16 object-contain mx-auto"
+            className="w-24 h-24 object-contain mx-auto"
           />
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
             Ready to Start Your English Journey?

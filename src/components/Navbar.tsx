@@ -26,6 +26,10 @@ import {
   Compass
 } from 'lucide-react';
 import { UserSession } from '@/types';
+import {
+  DUOLINGO_BASE_LANGUAGES,
+  getBaseLanguageInfo,
+} from '@/lib/duolingo-languages';
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -37,6 +41,36 @@ export default function Navbar() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
+
+  // Native Base Language Selector State (23 Duolingo Languages)
+  const [baseLang, setBaseLang] = useState<string>('hi');
+  const [langModalOpen, setLangModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('tici_base_lang');
+      if (saved) setBaseLang(saved);
+    } catch {}
+
+    const onLangChange = (e: any) => {
+      if (e?.detail?.lang) setBaseLang(e.detail.lang);
+    };
+    window.addEventListener('tici-lang-change', onLangChange);
+    return () => window.removeEventListener('tici-lang-change', onLangChange);
+  }, []);
+
+  const handleSelectBaseLang = (code: string) => {
+    setBaseLang(code);
+    setLangModalOpen(false);
+    try {
+      localStorage.setItem('tici_base_lang', code);
+      window.dispatchEvent(
+        new CustomEvent('tici-lang-change', { detail: { lang: code } })
+      );
+    } catch {}
+  };
+
+  const activeLangInfo = getBaseLanguageInfo(baseLang);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -82,15 +116,15 @@ export default function Navbar() {
       <nav className="sticky top-0 z-40 w-full border-b-2 border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl transition-all">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex items-center justify-between h-18 py-2.5">
-            {/* Clean Direct Brand Logo (No Blue Box) */}
-            <Link href="/" className="flex items-center gap-3 group">
+            {/* Larger Clean Direct Brand Logo (No Blue Box) */}
+            <Link href="/" className="flex items-center gap-3.5 group">
               <img
                 src="/images/brand/logo-tici.png"
                 alt="TICI EnglishMiami Logo"
-                className="w-12 h-12 object-contain transition-transform duration-200 group-hover:scale-105"
+                className="w-16 h-16 object-contain transition-transform duration-200 group-hover:scale-105"
               />
               <div className="flex flex-col">
-                <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                   English<span className="text-blue-700 dark:text-blue-400">Miami</span>
                 </span>
                 <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 -mt-0.5">
@@ -186,7 +220,20 @@ export default function Navbar() {
             </div>
 
             {/* Right Action Icons & Auth */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
+              {/* Native Language Selector Pill (23 Languages -> English) */}
+              <button
+                type="button"
+                onClick={() => setLangModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-[0_3px_0_0_#a7f3d0] dark:shadow-[0_3px_0_0_#064e3b] hover:-translate-y-0.5 active:translate-y-0.5 transition-all text-xs font-extrabold cursor-pointer"
+                title="Select your native language to learn English from"
+              >
+                <span className="text-sm">{activeLangInfo.flag}</span>
+                <span className="hidden sm:inline">{activeLangInfo.nativeName}</span>
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">→ EN</span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+              </button>
+
               {/* Tactile Search Pill */}
               <button
                 onClick={() => setSearchModalOpen(true)}
@@ -507,6 +554,68 @@ export default function Navbar() {
                   Type a concept like <span className="text-blue-600 font-bold">"Past Simple"</span>, <span className="text-blue-600 font-bold">"Alphabet"</span>, or <span className="text-blue-600 font-bold">"Greetings"</span> and press Enter.
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 23-Language Native-to-English Course Selector Modal */}
+      {langModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setLangModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-3xl card-3d overflow-hidden max-h-[88vh] flex flex-col animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                  23 Native Languages Supported
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5">
+                  I Speak... (Select Your Native Language)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  We will teach you English step-by-step from your selected native language (e.g. Hindi → English, Urdu → English, Español → English).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLangModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {DUOLINGO_BASE_LANGUAGES.map((lang) => {
+                const isSelected = lang.code === baseLang;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => handleSelectBaseLang(lang.code)}
+                    className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer flex items-center gap-3 border-2 ${
+                      isSelected
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500 shadow-[0_4px_0_0_#059669]'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400 shadow-[0_3px_0_0_#e2e8f0] dark:shadow-[0_3px_0_0_#1e293b]'
+                    }`}
+                  >
+                    <span className="text-2xl shrink-0">{lang.flag}</span>
+                    <div className="min-w-0">
+                      <div className="font-black text-sm text-slate-900 dark:text-white truncate">
+                        {lang.nativeName}
+                      </div>
+                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
+                        {lang.name} → EN
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

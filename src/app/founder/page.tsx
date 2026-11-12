@@ -110,7 +110,7 @@ export default function MeetFounderPage() {
           <img
             src="/images/brand/logo-tici.png"
             alt="TICI Logo"
-            className="w-20 h-20 object-contain mx-auto"
+            className="w-24 h-24 object-contain mx-auto"
           />
           <span className="inline-block text-xs font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
             Meet the Founder
@@ -225,6 +225,11 @@ export default function MeetFounderPage() {
                   className="w-full h-80 sm:h-96 object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-transparent" />
+                <img
+                  src="/images/brand/logo-tici.png"
+                  alt="TICI Logo"
+                  className="absolute top-3 right-3 w-13 h-13 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                />
                 <div className="absolute bottom-0 inset-x-0 p-5 text-white">
                   <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-blue-600 text-white">
                     La Gorce Country Club • Miami Beach
@@ -284,6 +289,11 @@ export default function MeetFounderPage() {
                         {slot.roleTag}
                       </span>
                     </div>
+                    <img
+                      src="/images/brand/logo-tici.png"
+                      alt="TICI Logo"
+                      className="absolute bottom-3 right-3 w-12 h-12 object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.75)]"
+                    />
                   </div>
 
                   <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
